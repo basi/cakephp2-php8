@@ -1,313 +1,346 @@
 <?php
-declare(strict_types=1);
+/**
+ * Redis Cluster storage engine for cache
+ *
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @package       Cake.Cache.Engine
+ * @since         CakePHP(tm) v 2.2
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
+ */
 
-class RedisClusterEngine extends CacheEngine
-{
-    /**
-     * @var RedisCluster
-     */
-    protected RedisCluster $_Redis;
+/**
+ * Redis Cluster storage engine for cache
+ *
+ * @package       Cake.Cache.Engine
+ */
+class RedisClusterEngine extends CacheEngine {
 
-    /**
-     * @var array
-     */
-    public $settings = [];
+	/**
+	 * Redis Cluster wrapper.
+	 *
+	 * @var RedisCluster
+	 */
+	protected $_RedisCluster = null;
 
-    /**
-     * @param $settings
-     *
-     * @return bool
-     */
-    public function init($settings = []): bool
-    {
-        if (!extension_loaded('redis')) {
-            throw new UnexpectedValueException('The `redis` extension must be enabled to use RedisEngine.');
-        }
-        if (!class_exists('RedisCluster')) {
-            return false;
-        }
-        parent::init(
-            array_merge([
-                'engine'       => 'RedisCluster',
-                'prefix'       => Inflector::slug(APP_DIR) . '_',
-                'server'       => ['tcp://127.0.0.1:6379'],
-                'database'     => 0,
-                'port'         => 6379,
-                'password'     => false,
-                'timeout'      => 0,
-                'persistent'   => true,
-                'unix_socket'  => false,
-                'duration'     => 0,
-                // add necessary parameters to RedisCluster __construct.
-                'name'         => null,
-                'failover'     => 'none',
-                'read_timeout' => 0,
-            ], $settings)
-        );
-        return $this->_connect();
-    }
+	/**
+	 * Settings
+	 *
+	 * - seeds = array of host:port pairs for Redis Cluster nodes
+	 * - timeout = float timeout in seconds (default: 0)
+	 * - readTimeout = float timeout for read operations (default: 0)
+	 * - persistent = bool Connects to the Redis server with a persistent connection (default: true)
+	 *
+	 * @var array
+	 */
+	public $settings = array();
 
-    /**
-     * @return bool
-     */
-    protected function _connect(): bool
-    {
-        try {
-            $this->_Redis = new RedisCluster(
-                $this->settings['name'],
-                (array)$this->settings['server'], // seeds
-                (float)$this->settings['timeout'],
-                (float)$this->settings['read_timeout'],
-                (bool)$this->settings['persistent']
-            );
+	/**
+	 * Initialize the Cache Engine
+	 *
+	 * Called automatically by the cache frontend
+	 * To reinitialize the settings call Cache::engine('EngineName', [optional] settings = array());
+	 *
+	 * @param array $settings array of setting for the engine
+	 * @return bool True if the engine has been successfully initialized, false if not
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function init($settings = array()) {
+		if (!class_exists('RedisCluster')) {
+			return false;
+		}
 
-            // https://github.com/phpredis/phpredis/blob/develop/cluster.md
-            switch ($this->settings['failover']) {
-                case 'error':
-                    $this->_Redis->setOption(
-                        RedisCluster::OPT_SLAVE_FAILOVER,
-                        RedisCluster::FAILOVER_ERROR
-                    );
-                    break;
-                case 'distribute':
-                    $this->_Redis->setOption(
-                        RedisCluster::OPT_SLAVE_FAILOVER,
-                        RedisCluster::FAILOVER_DISTRIBUTE
-                    );
-                    break;
-                case 'slaves':
-                    $this->_Redis->setOption(
-                        RedisCluster::OPT_SLAVE_FAILOVER,
-                        RedisCluster::FAILOVER_DISTRIBUTE_SLAVES
-                    );
-                    break;
-                default:
-                    $this->_Redis->setOption(
-                        RedisCluster::OPT_SLAVE_FAILOVER,
-                        RedisCluster::FAILOVER_NONE
-                    );
-            }
-        } catch (RedisClusterException $e) {
-            return false;
-        }
+		parent::init(array_merge(array(
+			'engine' => 'RedisCluster',
+			'prefix' => Inflector::slug(APP_DIR) . '_',
+			'seeds' => array('127.0.0.1:7000'),
+			'timeout' => 0,
+			'readTimeout' => 0,
+			'persistent' => true,
+			'password' => false,
+			'database' => 0,
+			'unix_socket' => false
+		), $settings));
 
-        return true;
-    }
+		return $this->_connect();
+	}
 
-    /**
-     * Serialize value for saving to Redis.
-     * This is needed instead of using Redis' in built serialization feature
-     * as it creates problems incrementing/decrementing initially set integer value.
-     *
-     * @param mixed $value Value to serialize.
-     *
-     * @return string
-     * @link https://github.com/phpredis/phpredis/issues/81
-     * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L363-L380
-     */
-    private function _serialize($value): string
-    {
-        if (is_int($value)) {
-            return (string)$value;
-        }
+	/**
+	 * Connects to a Redis Cluster
+	 *
+	 * @return bool True if Redis Cluster was connected
+	 * @throws RedisException When cannot connect to the server
+	 */
+	protected function _connect() {
+		try {
+			$persistentId = null;
+			if ($this->settings['persistent']) {
+				$persistentId = implode('_', array(
+					implode('_', $this->settings['seeds']),
+					$this->settings['timeout'],
+					$this->settings['readTimeout']
+				));
+			}
 
-        return serialize($value);
-    }
+			$this->_RedisCluster = new RedisCluster(
+				$persistentId,
+				$this->settings['seeds'],
+				$this->settings['timeout'],
+				$this->settings['readTimeout'],
+				$this->settings['persistent']
+			);
 
-    /**
-     * Convert the various expressions of a TTL value into duration in seconds
-     *
-     * @param \DateInterval|int|null $ttl The TTL value of this item. If null is sent, the
-     *   driver's default duration will be used.
-     *
-     * @return int
-     * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/CacheEngine.php#L371-L393
-     */
-    private function _duration($ttl): int
-    {
-        if ($ttl === null) {
-            return $this->settings['duration'];
-        }
-        if (is_int($ttl)) {
-            return $ttl;
-        }
-        if ($ttl instanceof DateInterval) {
-            return (int)DateTime::createFromFormat('U', '0')
-                ->add($ttl)
-                ->format('U');
-        }
+			if ($this->settings['password']) {
+				$this->_RedisCluster->auth($this->settings['password']);
+			}
 
-        throw new InvalidArgumentException('TTL values must be one of null, int, \DateInterval');
-    }
+			if ($this->settings['database'] !== 0) {
+				$this->_RedisCluster->select($this->settings['database']);
+			}
 
-    /**
-     * Unserialize string value fetched from Redis.
-     *
-     * @param string $value Value to unserialize.
-     *
-     * @return mixed
-     * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L382-L395
-     */
-    private function _unserialize(string $value)
-    {
-        // [-] -> -
-        if (preg_match('/^-?\d+$/', $value)) {
-            return (int)$value;
-        }
+			return true;
+		} catch (RedisException $e) {
+			return false;
+		}
+	}
 
-        return unserialize($value);
-    }
+	/**
+	 * Serializes value for storage
+	 *
+	 * @param mixed $value Value to serialize
+	 * @return string Serialized value
+	 */
+	protected function _serializeValue($value) {
+		if (is_int($value)) {
+			return (string)$value;
+		}
+		return serialize($value);
+	}
 
-    /**
-     * Write data for key into cache.
-     *
-     * @param string $key Identifier for the data
-     * @param mixed $value Data to be cached
-     * @param \DateInterval|int|null $ttl Optional. The TTL value of this item. If no value is sent and
-     *   the driver supports TTL then the library may set a default value
-     *   for it or let the driver take care of that.
-     *
-     * @return bool True if the data was successfully cached, false on failure
-     * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L138-L159
-     */
-    private function _set(string $key, $value, $ttl = null): bool
-    {
-        // Since the current behavior has not been confirmed, $this->_key has not been ported.
-        $value = $this->_serialize($value);
+	/**
+	 * Calculates the duration value in seconds
+	 *
+	 * @param int|string $duration Duration value
+	 * @return int Duration in seconds
+	 */
+	protected function _getDuration($duration) {
+		if (!is_numeric($duration)) {
+			$duration = strtotime($duration) - time();
+		}
+		return $duration;
+	}
 
-        $duration = $this->_duration($ttl);
-        if ($duration === 0) {
-            return $this->_Redis->set($key, $value);
-        }
-        // setEx -> setex
-        return $this->_Redis->setex($key, $duration, $value);
-    }
+	/**
+	 * Unserializes stored value
+	 *
+	 * @param string $value Serialized value
+	 * @return mixed Unserialized value
+	 */
+	protected function _unserializeValue($value) {
+		if (is_numeric($value)) {
+			return (int)$value;
+		}
+		return unserialize($value);
+	}
 
-    /**
-     * @param $key
-     * @param $value
-     * @param $duration
-     *
-     * @return bool
-     */
-    public function write($key, $value, $duration): bool
-    {
-        return $this->_set($key, $value, $duration);
-    }
+	/**
+	 * Sets a value in the cache
+	 *
+	 * @param string $key Identifier for the data
+	 * @param mixed $value Data to be cached
+	 * @param int $duration How long to cache the data, in seconds
+	 * @return bool True if the data was successfully cached, false on failure
+	 */
+	protected function _setValue($key, $value, $duration) {
+		$value = $this->_serializeValue($value);
+		$duration = $this->_getDuration($duration);
 
-    /**
-     * Read a key from the cache
-     *
-     * @param string $key Identifier for the data
-     * @param mixed $default Default value to return if the key does not exist.
-     *
-     * @return mixed The cached data, or the default if the data doesn't exist, has
-     *   expired, or if there was an error fetching it
-     * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L161-L177
-     */
-    private function _get(string $key, $default = null)
-    {
-        // Since the current behavior has not been confirmed, $this->_key has not been ported.
-        $value = $this->_Redis->get($key);
-        if ($value === false) {
-            return $default;
-        }
+		if ($duration < 1) {
+			return false;
+		}
 
-        return $this->_unserialize($value);
-    }
+		return $this->_RedisCluster->setex($key, $duration, $value);
+	}
 
-    /**
-     * @param $key
-     *
-     * @return mixed
-     */
-    public function read($key)
-    {
-        return $this->_get($key);
-    }
+	/**
+	 * Gets a value from the cache
+	 *
+	 * @param string $key Identifier for the data
+	 * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
+	 */
+	protected function _getValue($key) {
+		$value = $this->_RedisCluster->get($key);
 
-    /**
-     * Delete a key from the cache
-     *
-     * @param string $key Identifier for the data
-     *
-     * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
-     * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L219-L230
-     */
-    private function _delete(string $key): bool
-    {
-        // Since the current behavior has not been confirmed, $this->_key has not been ported.
-        return $this->_Redis->del($key) > 0;
-    }
+		if ($value === false) {
+			return false;
+		}
 
-    /**
-     * @param $key
-     *
-     * @return bool
-     */
-    public function delete($key): bool
-    {
-        return $this->_delete($key);
-    }
+		return $this->_unserializeValue($value);
+	}
 
-    /**
-     * @param $check
-     *
-     * @return bool
-     * @link https://github.com/riesenia/cakephp-rediscluster/blob/master/src/Cache/Engine/RedisClusterEngine.php
-     */
-    public function clear($check): bool
-    {
-        if ($check) {
-            return true;
-        }
+	/**
+	 * Deletes a value from the cache
+	 *
+	 * @param string $key Identifier for the data
+	 * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
+	 */
+	protected function _deleteValue($key) {
+		return $this->_RedisCluster->del($key) > 0;
+	}
 
-        $result = true;
-        foreach ($this->_Redis->_masters() as $m) {
-            $iterator = null;
-            do {
-                $keys = $this->_Redis->scan($iterator, $m, $this->settings['prefix'] . '*');
-                if ($keys === false) {
-                    continue;
-                }
-                foreach ($keys as $key) {
-                    if ($this->_Redis->del($key) < 1) {
-                        $result = false;
-                    }
-                }
-            } while ($iterator > 0);
-        }
+	/**
+	 * Write data for key into cache
+	 *
+	 * @param string $key Identifier for the data
+	 * @param mixed $value Data to be cached
+	 * @param int|string|null $duration How long to cache the data, in seconds
+	 * @return bool True if the data was successfully cached, false on failure
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function write($key, $value, $duration = null) {
+		if (!$this->_RedisCluster) {
+			return false;
+		}
 
-        return $result;
-    }
+		if ($duration === null) {
+			$duration = $this->settings['duration'];
+		}
 
+		$key = $this->_key($key);
+		return $this->_setValue($key, $value, $duration);
+	}
 
-    public function increment($key, $offset = 1): bool
-    {
-        throw new NotImplementedException('increment is not supported');
-    }
+	/**
+	 * Read a key from the cache
+	 *
+	 * @param string $key Identifier for the data
+	 * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function read($key) {
+		if (!$this->_RedisCluster) {
+			return false;
+		}
 
+		$key = $this->_key($key);
+		return $this->_getValue($key);
+	}
 
-    public function decrement($key, $offset = 1): bool
-    {
-        throw new NotImplementedException('decrement is not supported');
-    }
+	/**
+	 * Increments the value of an integer cached key
+	 *
+	 * @param string $key Identifier for the data
+	 * @param int $offset How much to increment
+	 * @return mixed New incremented value, false otherwise
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function increment($key, $offset = 1) {
+		if (!$this->_RedisCluster) {
+			return false;
+		}
 
+		$key = $this->_key($key);
+		return (int)$this->_RedisCluster->incrBy($key, $offset);
+	}
 
-    public function groups(): bool
-    {
-        throw new NotImplementedException('group method not supported');
-    }
+	/**
+	 * Decrements the value of an integer cached key
+	 *
+	 * @param string $key Identifier for the data
+	 * @param int $offset How much to subtract
+	 * @return mixed New decremented value, false otherwise
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function decrement($key, $offset = 1) {
+		if (!$this->_RedisCluster) {
+			return false;
+		}
 
+		$key = $this->_key($key);
+		return (int)$this->_RedisCluster->decrBy($key, $offset);
+	}
 
-    public function clearGroup($group): bool
-    {
-        throw new NotImplementedException('clearGroup method not supported');
-    }
+	/**
+	 * Delete a key from the cache
+	 *
+	 * @param string $key Identifier for the data
+	 * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function delete($key) {
+		if (!$this->_RedisCluster) {
+			return false;
+		}
 
+		$key = $this->_key($key);
+		return $this->_deleteValue($key);
+	}
 
-    public function add($key, $value, $duration): bool
-    {
-        throw new NotImplementedException('add method not supported');
-    }
+	/**
+	 * Delete all keys from the cache
+	 *
+	 * @param bool $check Optional - only delete expired cache items
+	 * @return bool True if the cache was successfully cleared, false otherwise
+	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+	 */
+	public function clear($check) {
+		if (!$this->_RedisCluster) {
+			return false;
+		}
+
+		if ($check) {
+			return true;
+		}
+
+		$keys = $this->_RedisCluster->keys($this->settings['prefix'] . '*');
+		if (!empty($keys)) {
+			$this->_RedisCluster->del($keys);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns the `group value` for each of the configured groups
+	 *
+	 * @param string $key The key to retrieve
+	 * @return string
+	 */
+	public function groups($key) {
+		$value = $this->_RedisCluster->get($key);
+		if (!$value) {
+			$value = 1;
+			$this->_RedisCluster->set($key, $value);
+		}
+		return $value;
+	}
+
+	/**
+	 * Increments the group value to simulate deletion of all keys under a group
+	 * old values will remain in storage until they expire.
+	 *
+	 * @param string $group name of the group to be cleared
+	 * @return bool success
+	 */
+	public function clearGroup($group) {
+		return (bool)$this->_RedisCluster->incr($this->settings['prefix'] . $group);
+	}
+
+	/**
+	 * Disconnects from the redis server
+	 *
+	 * @return void
+	 */
+	public function __destruct() {
+		if (!$this->settings['persistent']) {
+			$this->_RedisCluster->close();
+		}
+	}
 }
