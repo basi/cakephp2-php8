@@ -1,6 +1,6 @@
 <?php
 /**
- * AllLocalizationTest file
+ * AllI18nTest file
  *
  * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
  * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
@@ -17,7 +17,7 @@
  */
 
 /**
- * AllLocalizationTest class
+ * AllI18nTest class
  *
  * This test group will run i18n/l10n tests
  *

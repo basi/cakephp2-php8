@@ -204,8 +204,8 @@ class ErrorHandler {
  * @return bool true if error was handled
  */
 	public static function handleError($code, $description, $file = null, $line = null, $context = null) {
-		//PHP8 migration guide: https://www.php.net/manual/en/migration80.incompatible.php
-		//See: @ operator
+		// PHP8 migration guide: https://www.php.net/manual/en/migration80.incompatible.php
+		// See: @ operator
 		if (!(error_reporting() & $code)) {
 			return false;
 		}

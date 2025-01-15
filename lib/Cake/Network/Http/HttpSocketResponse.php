@@ -443,7 +443,7 @@ class HttpSocketResponse implements ArrayAccess {
 /**
  * ArrayAccess - Offset Unset
  *
- * @param string $offset Offset to unset.
+ * @param mixed $offset Offset to unset.
  * @return void
  */
 	public function offsetUnset(mixed $offset) : void {

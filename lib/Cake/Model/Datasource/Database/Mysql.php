@@ -361,7 +361,7 @@ class Mysql extends DboSource {
 				$fields[$column->Field]['unsigned'] = $this->_unsigned($column->Type);
 			}
 			if (in_array($fields[$column->Field]['type'], array('timestamp', 'datetime')) &&
-				//Falling back to default empty string due to PHP8.1 deprecation notice.
+				// Falling back to default empty string due to PHP8.1 deprecation notice.
 				in_array(strtoupper($column->Default ?? ""), array('CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP()'))
 			) {
 				$fields[$column->Field]['default'] = null;
@@ -384,7 +384,7 @@ class Mysql extends DboSource {
 		$this->_cacheDescription($key, $fields);
 		$cols->closeCursor();
 
-		//Fields must be an array for compatibility with PHP8.1 (deprecation notice) but also let's keep backwards compatibility for method.
+		// Fields must be an array for compatibility with PHP8.1 (deprecation notice) but also let's keep backwards compatibility for method.
 		if (count($fields) === 0) {
 			return false;
 		}

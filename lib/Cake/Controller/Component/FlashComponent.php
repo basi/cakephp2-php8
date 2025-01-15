@@ -26,6 +26,9 @@ App::uses('CakeSession', 'Model/Datasource');
  * FlashHelper.
  *
  * @package       Cake.Controller.Component
+ * @method error(string $string)
+ * @method success(string $string)
+ * @method warning(string $string)
  */
 class FlashComponent extends Component {
 
