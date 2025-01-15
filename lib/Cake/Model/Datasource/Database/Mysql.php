@@ -120,6 +120,7 @@ class Mysql extends DboSource {
 		'primary_key' => array('name' => 'NOT NULL AUTO_INCREMENT'),
 		'string' => array('name' => 'varchar', 'limit' => '255'),
 		'text' => array('name' => 'text'),
+		'mediumtext' => array('name' => 'mediumtext'),
 		'enum' => array('name' => 'enum'),
 		'biginteger' => array('name' => 'bigint', 'limit' => '20'),
 		'integer' => array('name' => 'int', 'limit' => '11', 'formatter' => 'intval'),
@@ -132,6 +133,7 @@ class Mysql extends DboSource {
 		'time' => array('name' => 'time', 'format' => 'H:i:s', 'formatter' => 'date'),
 		'date' => array('name' => 'date', 'format' => 'Y-m-d', 'formatter' => 'date'),
 		'binary' => array('name' => 'blob'),
+		'mediumblob' => array('name' => 'mediumblob'),
 		'boolean' => array('name' => 'tinyint', 'limit' => '1')
 	);
 
@@ -812,8 +814,14 @@ class Mysql extends DboSource {
 		if (strpos($col, 'char') !== false || $col === 'tinytext') {
 			return 'string';
 		}
+		if (strpos($col, 'mediumtext') !== false) {
+			return 'mediumtext';
+		}
 		if (strpos($col, 'text') !== false) {
 			return 'text';
+		}
+		if (strpos($col, 'mediumblob') !== false) {
+			return 'mediumblob';
 		}
 		if (strpos($col, 'blob') !== false || $col === 'binary') {
 			return 'binary';
