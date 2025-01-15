@@ -21,30 +21,40 @@
  */
 abstract class CacheEngine {
 
-	/**
-	 * Settings of current engine instance
-	 *
-	 * @var array
-	 */
+/**
+ * Settings of current engine instance
+ *
+ * @var array
+ */
 	public $settings = array();
 
-	/**
-	 * Initialize the cache engine
-	 *
-	 * Called automatically by the cache frontend
-	 *
-	 * @param array $settings Associative array of parameters for the engine
-	 * @return bool True if the engine has been successfully initialized, false if not
-	 */
+/**
+ * Contains the compiled string with all groups
+ * prefixes to be prepended to every key in this cache engine
+ *
+ * @var string
+ */
+	protected $_groupPrefix = null;
+
+/**
+ * Initialize the cache engine
+ *
+ * Called automatically by the cache frontend
+ *
+ * @param array $settings Associative array of parameters for the engine
+ * @return bool True if the engine has been successfully initialized, false if not
+ */
 	public function init($settings = array()) {
-		$this->settings = array_merge(array(
+		$settings += $this->settings + array(
 			'prefix' => 'cake_',
 			'duration' => 3600,
 			'probability' => 100,
 			'groups' => array()
-		), $settings);
-		if (!empty($this->settings['groups']) && !is_array($this->settings['groups'])) {
-			$this->settings['groups'] = array($this->settings['groups']);
+		);
+		$this->settings = $settings;
+		if (!empty($this->settings['groups'])) {
+			sort($this->settings['groups']);
+			$this->_groupPrefix = str_repeat('%s_', count($this->settings['groups']));
 		}
 		if (!is_numeric($this->settings['duration'])) {
 			$this->settings['duration'] = strtotime($this->settings['duration']) - time();
@@ -52,128 +62,153 @@ abstract class CacheEngine {
 		return true;
 	}
 
-	/**
-	 * Garbage collection
-	 *
-	 * Permanently remove all expired and deleted data
-	 *
-	 * @param int|null $expires [optional] An expires timestamp, invalidating all data before.
-	 * @return void
-	 */
+/**
+ * Garbage collection
+ *
+ * Permanently remove all expired and deleted data
+ *
+ * @param int $expires [optional] An expires timestamp, invalidating all data before.
+ * @return void
+ */
 	public function gc($expires = null) {
 	}
 
-	/**
-	 * Write value for a key into cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @param mixed $value Data to be cached
-	 * @param int|string|null $duration Optional - string configuration for the duration
-	 * @return bool True if the data was successfully cached, false on failure
-	 */
-	abstract public function write($key, $value, $duration = null);
+/**
+ * Write value for a key into cache
+ *
+ * @param string $key Identifier for the data
+ * @param mixed $value Data to be cached
+ * @param int $duration How long to cache for.
+ * @return bool True if the data was successfully cached, false on failure
+ */
+	abstract public function write($key, $value, $duration);
 
-	/**
-	 * Read a key from the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
-	 */
+/**
+ * Write value for a key into cache if it doesn't already exist
+ *
+ * @param string $key Identifier for the data
+ * @param mixed $value Data to be cached
+ * @param int $duration How long to cache for.
+ * @return bool True if the data was successfully cached, false on failure
+ */
+	public function add($key, $value, $duration) {
+	}
+
+/**
+ * Read a key from the cache
+ *
+ * @param string $key Identifier for the data
+ * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
+ */
 	abstract public function read($key);
 
-	/**
-	 * Increment a number under the key and return incremented value
-	 *
-	 * @param string $key Identifier for the data
-	 * @param int $offset How much to add
-	 * @return mixed New incremented value, false otherwise
-	 */
+/**
+ * Increment a number under the key and return incremented value
+ *
+ * @param string $key Identifier for the data
+ * @param int $offset How much to add
+ * @return New incremented value, false otherwise
+ */
 	abstract public function increment($key, $offset = 1);
 
-	/**
-	 * Decrement a number under the key and return decremented value
-	 *
-	 * @param string $key Identifier for the data
-	 * @param int $offset How much to subtract
-	 * @return mixed New incremented value, false otherwise
-	 */
+/**
+ * Decrement a number under the key and return decremented value
+ *
+ * @param string $key Identifier for the data
+ * @param int $offset How much to subtract
+ * @return New incremented value, false otherwise
+ */
 	abstract public function decrement($key, $offset = 1);
 
-	/**
-	 * Delete a key from the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
-	 */
+/**
+ * Delete a key from the cache
+ *
+ * @param string $key Identifier for the data
+ * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
+ */
 	abstract public function delete($key);
 
-	/**
-	 * Delete all keys from the cache
-	 *
-	 * @param bool $check Optional - only delete expired cache items
-	 * @return bool True if the cache was successfully cleared, false otherwise
-	 */
-	abstract public function clear($check = false);
+/**
+ * Delete all keys from the cache
+ *
+ * @param bool $check if true will check expiration, otherwise delete all
+ * @return bool True if the cache was successfully cleared, false otherwise
+ */
+	abstract public function clear($check);
 
-	/**
-	 * Add a key to the cache if it does not already exist.
-	 *
-	 * Defaults to a non-atomic implementation. Subclasses should
-	 * prefer atomic implementations.
-	 *
-	 * @param string $key Identifier for the data.
-	 * @param mixed $value Data to be cached.
-	 * @param int|string|null $duration Optional - string configuration for the duration
-	 * @return bool True if the data was successfully cached, false on failure.
-	 */
-	public function add($key, $value, $duration = null) {
-		if ($this->read($key) === false) {
-			return $this->write($key, $value, $duration);
-		}
+/**
+ * Clears all values belonging to a group. Is up to the implementing engine
+ * to decide whether actually delete the keys or just simulate it to achieve
+ * the same result.
+ *
+ * @param string $group name of the group to be cleared
+ * @return bool
+ */
+	public function clearGroup($group) {
 		return false;
 	}
 
-	/**
-	 * Generates a safe key for use with cache engine storage engines.
-	 *
-	 * @param string $key the key passed over
-	 * @return mixed string $key or false
-	 */
+/**
+ * Does whatever initialization for each group is required
+ * and returns the `group value` for each of them, this is
+ * the token representing each group in the cache key
+ *
+ * @return array
+ */
+	public function groups() {
+		return $this->settings['groups'];
+	}
+
+/**
+ * Cache Engine settings
+ *
+ * @return array settings
+ */
+	public function settings() {
+		return $this->settings;
+	}
+
+/**
+ * Generates a safe key for use with cache engine storage engines.
+ *
+ * @param string $key the key passed over
+ * @return mixed string $key or false
+ */
 	public function key($key) {
 		if (empty($key)) {
 			return false;
 		}
+
 		$prefix = '';
-		if (!empty($this->settings['prefix'])) {
-			$prefix = $this->settings['prefix'];
+		if (!empty($this->_groupPrefix)) {
+			$prefix = md5(implode('_', $this->groups()));
 		}
+
 		$key = preg_replace('/[\s]+/', '_', strtolower(trim(str_replace(array(DS, '/', '.'), '_', strval($key)))));
 		return $prefix . $key;
 	}
 
-	/**
-	 * Obtains multiple cache items by their unique keys.
-	 *
-	 * @param array $keys A list of keys that can obtained in a single operation.
-	 * @param mixed $default Default value to return for keys that do not exist.
-	 * @return iterable A list of key value pairs. Cache keys that do not exist or are stale will have $default as value.
-	 * @throws NotImplementedException When the method is not implemented in the engine.
-	 */
-	public function getMultiple(array $keys, $default = null): iterable {
-		throw new NotImplementedException(__CLASS__);
-	}
+    /**
+     * Obtains multiple cache items by their unique keys.
+     *
+     * @param iterable $keys A list of keys that can obtained in a single operation.
+     * @param mixed $default Default value to return for keys that do not exist.
+     * @return iterable A list of key value pairs. Cache keys that do not exist or are stale will have $default as value.
+     */
+    public function getMultiple(array $keys, $default = null): iterable {
+        throw new NotImplementedException(__CLASS__);
+    }
 
-	/**
-	 * Persists a set of key => value pairs in the cache with an optional TTL.
-	 *
-	 * @param array $values A list of key => value pairs for a multiple-set operation.
-	 * @param int|null $ttl Optional. The TTL value of this item. If no value is sent and
-	 *   the driver supports TTL then the library may set a default value
-	 *   for it or let the driver take care of that.
-	 * @return bool True on success and false on failure.
-	 * @throws NotImplementedException When the method is not implemented in the engine.
-	 */
-	public function setMultiple($values, $ttl = null): bool {
-		throw new NotImplementedException(__CLASS__);
-	}
+    /**
+     * Persists a set of key => value pairs in the cache, with an optional TTL.
+     *
+     * @param iterable $values A list of key => value pairs for a multiple-set operation.
+     * @param int|null $ttl Optional. The TTL value of this item. If no value is sent and
+     *   the driver supports TTL then the library may set a default value
+     *   for it or let the driver take care of that.
+     * @return bool True on success and false on failure.
+     */
+    public function setMultiple($values, $ttl = null): bool {
+        throw new NotImplementedException(__CLASS__);
+    }
 }
