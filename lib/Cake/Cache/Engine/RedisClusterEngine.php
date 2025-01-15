@@ -20,7 +20,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool True if the engine has been successfully initialized, false if not
  * @throws UnexpectedValueException When redis extension is not loaded
  */
-	public function init($settings = []): bool {
+	public function init($settings = []) : bool {
 		if (!extension_loaded('redis')) {
 			throw new UnexpectedValueException('The `redis` extension must be enabled to use RedisEngine.');
 		}
@@ -53,7 +53,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool True if connected successfully
  * @throws RedisClusterException When connection fails
  */
-	protected function _connect(): bool {
+	protected function _connect() : bool {
 		try {
 			$this->redis = new RedisCluster(
 				$this->settings['name'],
@@ -101,7 +101,7 @@ class RedisClusterEngine extends CacheEngine {
  * @param mixed $value Value to serialize
  * @return string Serialized value
  */
-	protected function _serializeValue($value): string {
+	protected function _serializeValue($value) : string {
 		if (is_int($value)) {
 			return (string)$value;
 		}
@@ -116,7 +116,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return int Duration in seconds
  * @throws InvalidArgumentException When TTL value is invalid
  */
-	protected function _getDuration($ttl): int {
+	protected function _getDuration($ttl) : int {
 		if ($ttl === null) {
 			return $this->settings['duration'];
 		}
@@ -154,7 +154,7 @@ class RedisClusterEngine extends CacheEngine {
  * @param \DateInterval|int|null $ttl TTL value
  * @return bool True if the data was successfully cached
  */
-	protected function _setValue(string $key, $value, $ttl = null): bool {
+	protected function _setValue(string $key, $value, $ttl = null) : bool {
 		$value = $this->_serializeValue($value);
 
 		$duration = $this->_getDuration($ttl);
@@ -172,7 +172,7 @@ class RedisClusterEngine extends CacheEngine {
  * @param int $duration How long to cache the data
  * @return bool True if the data was successfully cached
  */
-	public function write($key, $value, $duration): bool {
+	public function write($key, $value, $duration) : bool {
 		return $this->_setValue($key, $value, $duration);
 	}
 
@@ -208,7 +208,7 @@ class RedisClusterEngine extends CacheEngine {
  * @param string $key Identifier for the data
  * @return bool True if deleted successfully
  */
-	protected function _deleteValue(string $key): bool {
+	protected function _deleteValue(string $key) : bool {
 		return $this->redis->del($key) > 0;
 	}
 
@@ -218,7 +218,7 @@ class RedisClusterEngine extends CacheEngine {
  * @param string $key Identifier for the data
  * @return bool True if deleted successfully
  */
-	public function delete($key): bool {
+	public function delete($key) : bool {
 		return $this->_deleteValue($key);
 	}
 
@@ -228,7 +228,7 @@ class RedisClusterEngine extends CacheEngine {
  * @param bool $check Only delete expired cache items
  * @return bool True if cache was cleared
  */
-	public function clear($check): bool {
+	public function clear($check) : bool {
 		if ($check) {
 			return true;
 		}
@@ -260,7 +260,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool Always false
  * @throws NotImplementedException Method not supported
  */
-	public function increment($key, $offset = 1): bool {
+	public function increment($key, $offset = 1) : bool {
 		throw new NotImplementedException('increment is not supported');
 	}
 
@@ -272,7 +272,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool Always false
  * @throws NotImplementedException Method not supported
  */
-	public function decrement($key, $offset = 1): bool {
+	public function decrement($key, $offset = 1) : bool {
 		throw new NotImplementedException('decrement is not supported');
 	}
 
@@ -282,7 +282,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool Always false
  * @throws NotImplementedException Method not supported
  */
-	public function groups(): bool {
+	public function groups() : bool {
 		throw new NotImplementedException('group method not supported');
 	}
 
@@ -293,7 +293,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool Always false
  * @throws NotImplementedException Method not supported
  */
-	public function clearGroup($group): bool {
+	public function clearGroup($group) : bool {
 		throw new NotImplementedException('clearGroup method not supported');
 	}
 
@@ -306,7 +306,7 @@ class RedisClusterEngine extends CacheEngine {
  * @return bool Always false
  * @throws NotImplementedException Method not supported
  */
-	public function add($key, $value, $duration): bool {
+	public function add($key, $value, $duration) : bool {
 		throw new NotImplementedException('add method not supported');
 	}
 }
