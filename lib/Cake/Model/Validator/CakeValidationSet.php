@@ -330,8 +330,8 @@ class CakeValidationSet implements ArrayAccess, IteratorAggregate, Countable {
  * This is a wrapper for ArrayAccess. Use setRule() directly for
  * chainable access.
  *
- * @param string $index Name of the rule.
- * @param CakeValidationRule|array $rule Rule to add to $index.
+ * @param mixed $index Name of the rule.
+ * @param mixed|CakeValidationRule|array $rule Rule to add to $index.
  * @return void
  * @see http://www.php.net/manual/en/arrayobject.offsetset.php
  */
@@ -342,7 +342,7 @@ class CakeValidationSet implements ArrayAccess, IteratorAggregate, Countable {
 /**
  * Unsets a validation rule
  *
- * @param string $index name of the rule
+ * @param mixed $index name of the rule
  * @return void
  */
 	public function offsetUnset(mixed $index) : void {
