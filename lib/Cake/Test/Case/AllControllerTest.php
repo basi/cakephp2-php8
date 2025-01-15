@@ -1,6 +1,6 @@
 <?php
 /**
- * AllControllersTest file
+ * AllControllerTest file
  *
  * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
  * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
@@ -17,7 +17,7 @@
  */
 
 /**
- * AllControllersTest class
+ * AllControllerTest class
  *
  * This test group will run Controller related tests.
  *
