@@ -1,12 +1,12 @@
 <?php
-declare(strict_types=1);
+declare(strict_types = 1);
 
 class RedisClusterEngine extends CacheEngine {
 
 /**
  * @var RedisCluster
  */
-	protected RedisCluster $_Redis;
+	protected RedisCluster $redis;
 
 /**
  * @var array
@@ -14,9 +14,11 @@ class RedisClusterEngine extends CacheEngine {
 	public $settings = [];
 
 /**
- * @param $settings
+ * Initialize the Cache Engine
  *
- * @return bool
+ * @param array $settings Configuration settings for the engine
+ * @return bool True if the engine has been successfully initialized, false if not
+ * @throws UnexpectedValueException When redis extension is not loaded
  */
 	public function init($settings = []): bool {
 		if (!extension_loaded('redis')) {
@@ -27,19 +29,18 @@ class RedisClusterEngine extends CacheEngine {
 		}
 		parent::init(
 			array_merge([
-				'engine'       => 'RedisCluster',
-				'prefix'       => Inflector::slug(APP_DIR) . '_',
-				'server'       => ['tcp://127.0.0.1:6379'],
-				'database'     => 0,
-				'port'         => 6379,
-				'password'     => false,
-				'timeout'      => 0,
-				'persistent'   => true,
-				'unix_socket'  => false,
-				'duration'     => 0,
-				// add necessary parameters to RedisCluster __construct.
-				'name'         => null,
-				'failover'     => 'none',
+				'engine' => 'RedisCluster',
+				'prefix' => Inflector::slug(APP_DIR) . '_',
+				'server' => ['tcp://127.0.0.1:6379'],
+				'database' => 0,
+				'port' => 6379,
+				'password' => false,
+				'timeout' => 0,
+				'persistent' => true,
+				'unix_socket' => false,
+				'duration' => 0,
+				'name' => null,
+				'failover' => 'none',
 				'read_timeout' => 0,
 			], $settings)
 		);
@@ -47,40 +48,42 @@ class RedisClusterEngine extends CacheEngine {
 	}
 
 /**
- * @return bool
+ * Connect to Redis Cluster
+ *
+ * @return bool True if connected successfully
+ * @throws RedisClusterException When connection fails
  */
 	protected function _connect(): bool {
 		try {
-			$this->_Redis = new RedisCluster(
+			$this->redis = new RedisCluster(
 				$this->settings['name'],
-				(array)$this->settings['server'], // seeds
+				(array)$this->settings['server'],
 				(float)$this->settings['timeout'],
 				(float)$this->settings['read_timeout'],
 				(bool)$this->settings['persistent']
 			);
 
-			// https://github.com/phpredis/phpredis/blob/develop/cluster.md
 			switch ($this->settings['failover']) {
 				case 'error':
-					$this->_Redis->setOption(
+					$this->redis->setOption(
 						RedisCluster::OPT_SLAVE_FAILOVER,
 						RedisCluster::FAILOVER_ERROR
 					);
 					break;
 				case 'distribute':
-					$this->_Redis->setOption(
+					$this->redis->setOption(
 						RedisCluster::OPT_SLAVE_FAILOVER,
 						RedisCluster::FAILOVER_DISTRIBUTE
 					);
 					break;
 				case 'slaves':
-					$this->_Redis->setOption(
+					$this->redis->setOption(
 						RedisCluster::OPT_SLAVE_FAILOVER,
 						RedisCluster::FAILOVER_DISTRIBUTE_SLAVES
 					);
 					break;
 				default:
-					$this->_Redis->setOption(
+					$this->redis->setOption(
 						RedisCluster::OPT_SLAVE_FAILOVER,
 						RedisCluster::FAILOVER_NONE
 					);
@@ -94,16 +97,11 @@ class RedisClusterEngine extends CacheEngine {
 
 /**
  * Serialize value for saving to Redis.
- * This is needed instead of using Redis' in built serialization feature
- * as it creates problems incrementing/decrementing initially set integer value.
  *
- * @param mixed $value Value to serialize.
- *
- * @return string
- * @link https://github.com/phpredis/phpredis/issues/81
- * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L363-L380
+ * @param mixed $value Value to serialize
+ * @return string Serialized value
  */
-	private function _serialize($value): string {
+	protected function _serializeValue($value): string {
 		if (is_int($value)) {
 			return (string)$value;
 		}
@@ -114,13 +112,11 @@ class RedisClusterEngine extends CacheEngine {
 /**
  * Convert the various expressions of a TTL value into duration in seconds
  *
- * @param \DateInterval|int|null $ttl The TTL value of this item. If null is sent, the
- *   driver's default duration will be used.
- *
- * @return int
- * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/CacheEngine.php#L371-L393
+ * @param \DateInterval|int|null $ttl TTL value
+ * @return int Duration in seconds
+ * @throws InvalidArgumentException When TTL value is invalid
  */
-	private function _duration($ttl): int {
+	protected function _getDuration($ttl): int {
 		if ($ttl === null) {
 			return $this->settings['duration'];
 		}
@@ -139,13 +135,10 @@ class RedisClusterEngine extends CacheEngine {
 /**
  * Unserialize string value fetched from Redis.
  *
- * @param string $value Value to unserialize.
- *
- * @return mixed
- * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L382-L395
+ * @param string $value Value to unserialize
+ * @return mixed Unserialized value
  */
-	private function _unserialize(string $value) {
-		// [-] -> -
+	protected function _unserializeValue(string $value) {
 		if (preg_match('/^-?\d+$/', $value)) {
 			return (int)$value;
 		}
@@ -158,92 +151,82 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @param string $key Identifier for the data
  * @param mixed $value Data to be cached
- * @param \DateInterval|int|null $ttl Optional. The TTL value of this item. If no value is sent and
- *   the driver supports TTL then the library may set a default value
- *   for it or let the driver take care of that.
- *
- * @return bool True if the data was successfully cached, false on failure
- * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L138-L159
+ * @param \DateInterval|int|null $ttl TTL value
+ * @return bool True if the data was successfully cached
  */
-	private function _set(string $key, $value, $ttl = null): bool {
-		// Since the current behavior has not been confirmed, $this->_key has not been ported.
-		$value = $this->_serialize($value);
+	protected function _setValue(string $key, $value, $ttl = null): bool {
+		$value = $this->_serializeValue($value);
 
-		$duration = $this->_duration($ttl);
+		$duration = $this->_getDuration($ttl);
 		if ($duration === 0) {
-			return $this->_Redis->set($key, $value);
+			return $this->redis->set($key, $value);
 		}
-		// setEx -> setex
-		return $this->_Redis->setex($key, $duration, $value);
+		return $this->redis->setex($key, $duration, $value);
 	}
 
 /**
- * @param $key
- * @param $value
- * @param $duration
+ * Write data for key into cache
  *
- * @return bool
+ * @param string $key Identifier for the data
+ * @param mixed $value Data to be cached
+ * @param int $duration How long to cache the data
+ * @return bool True if the data was successfully cached
  */
 	public function write($key, $value, $duration): bool {
-		return $this->_set($key, $value, $duration);
+		return $this->_setValue($key, $value, $duration);
 	}
 
 /**
  * Read a key from the cache
  *
  * @param string $key Identifier for the data
- * @param mixed $default Default value to return if the key does not exist.
- *
- * @return mixed The cached data, or the default if the data doesn't exist, has
- *   expired, or if there was an error fetching it
- * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L161-L177
+ * @param mixed $default Default value if key doesn't exist
+ * @return mixed The cached data
  */
-	private function _get(string $key, $default = null) {
-		// Since the current behavior has not been confirmed, $this->_key has not been ported.
-		$value = $this->_Redis->get($key);
+	protected function _getValue(string $key, $default = null) {
+		$value = $this->redis->get($key);
 		if ($value === false) {
 			return $default;
 		}
 
-		return $this->_unserialize($value);
+		return $this->_unserializeValue($value);
 	}
 
 /**
- * @param $key
+ * Read a key from the cache
  *
- * @return mixed
+ * @param string $key Identifier for the data
+ * @return mixed The cached data
  */
 	public function read($key) {
-		return $this->_get($key);
+		return $this->_getValue($key);
 	}
 
 /**
  * Delete a key from the cache
  *
  * @param string $key Identifier for the data
- *
- * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
- * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L219-L230
+ * @return bool True if deleted successfully
  */
-	private function _delete(string $key): bool {
-		// Since the current behavior has not been confirmed, $this->_key has not been ported.
-		return $this->_Redis->del($key) > 0;
+	protected function _deleteValue(string $key): bool {
+		return $this->redis->del($key) > 0;
 	}
 
 /**
- * @param $key
+ * Delete a key from the cache
  *
- * @return bool
+ * @param string $key Identifier for the data
+ * @return bool True if deleted successfully
  */
 	public function delete($key): bool {
-		return $this->_delete($key);
+		return $this->_deleteValue($key);
 	}
 
 /**
- * @param $check
+ * Delete all keys from the cache
  *
- * @return bool
- * @link https://github.com/riesenia/cakephp-rediscluster/blob/master/src/Cache/Engine/RedisClusterEngine.php
+ * @param bool $check Only delete expired cache items
+ * @return bool True if cache was cleared
  */
 	public function clear($check): bool {
 		if ($check) {
@@ -251,15 +234,15 @@ class RedisClusterEngine extends CacheEngine {
 		}
 
 		$result = true;
-		foreach ($this->_Redis->_masters() as $m) {
+		foreach ($this->redis->_masters() as $m) {
 			$iterator = null;
 			do {
-				$keys = $this->_Redis->scan($iterator, $m, $this->settings['prefix'] . '*');
+				$keys = $this->redis->scan($iterator, $m, $this->settings['prefix'] . '*');
 				if ($keys === false) {
 					continue;
 				}
 				foreach ($keys as $key) {
-					if ($this->_Redis->del($key) < 1) {
+					if ($this->redis->del($key) < 1) {
 						$result = false;
 					}
 				}
@@ -270,47 +253,58 @@ class RedisClusterEngine extends CacheEngine {
 	}
 
 /**
- * @param $key
- * @param int $offset
+ * Increment a number under the key
  *
- * @return bool
+ * @param string $key Identifier for the data
+ * @param int $offset How much to increment
+ * @return bool Always false
+ * @throws NotImplementedException Method not supported
  */
 	public function increment($key, $offset = 1): bool {
 		throw new NotImplementedException('increment is not supported');
 	}
 
 /**
- * @param $key
- * @param int $offset
+ * Decrement a number under the key
  *
- * @return bool
+ * @param string $key Identifier for the data
+ * @param int $offset How much to decrement
+ * @return bool Always false
+ * @throws NotImplementedException Method not supported
  */
 	public function decrement($key, $offset = 1): bool {
 		throw new NotImplementedException('decrement is not supported');
 	}
 
 /**
- * @return bool
+ * Get group value
+ *
+ * @return bool Always false
+ * @throws NotImplementedException Method not supported
  */
 	public function groups(): bool {
 		throw new NotImplementedException('group method not supported');
 	}
 
 /**
- * @param $group
+ * Clear group
  *
- * @return bool
+ * @param string $group Group name
+ * @return bool Always false
+ * @throws NotImplementedException Method not supported
  */
 	public function clearGroup($group): bool {
 		throw new NotImplementedException('clearGroup method not supported');
 	}
 
 /**
- * @param $key
- * @param $value
- * @param $duration
+ * Add data to the cache
  *
- * @return bool
+ * @param string $key Identifier for the data
+ * @param mixed $value Data to be cached
+ * @param int $duration How long to cache the data
+ * @return bool Always false
+ * @throws NotImplementedException Method not supported
  */
 	public function add($key, $value, $duration): bool {
 		throw new NotImplementedException('add method not supported');
