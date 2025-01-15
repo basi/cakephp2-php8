@@ -463,16 +463,16 @@ class FileEngine extends CacheEngine {
  * @return array A list of key value pairs. Cache keys that do not exist or are stale will have $default as value
  * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/FileEngine.php#L138-L159
  */
-public function getMultiple(array $keys, $default = null) : iterable {
- $result = array();
- foreach ($keys as $key) {
- 	$result[$key] = $this->read($key);
- 	if (false === $result[$key] && null !== $default) {
- 		$result[$key] = $default;
- 	}
- }
- return $result;
-}
+	public function getMultiple(array $keys, $default = null): iterable {
+		$result = array();
+		foreach ($keys as $key) {
+			$result[$key] = $this->read($key);
+			if (false === $result[$key] && null !== $default) {
+				$result[$key] = $default;
+			}
+		}
+		return $result;
+	}
 
 /**
  * Persists a set of key => value pairs in the cache with an optional TTL.
@@ -482,12 +482,12 @@ public function getMultiple(array $keys, $default = null) : iterable {
  * @return bool True on success and false on failure
  * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/FileEngine.php#L161-L177
  */
-public function setMultiple($values, $ttl = null) : bool {
- foreach ($values as $key => $value) {
- 	if (false === $this->write($key, $value, $ttl)) {
- 		return false;
- 	}
- }
- return true;
-}
+	public function setMultiple($values, $ttl = null): bool {
+		foreach ($values as $key => $value) {
+			if (false === $this->write($key, $value, $ttl)) {
+				return false;
+			}
+		}
+		return true;
+	}
 }
