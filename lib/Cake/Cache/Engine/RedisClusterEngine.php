@@ -23,35 +23,35 @@
  */
 class RedisClusterEngine extends CacheEngine {
 
-	/**
-	 * Redis Cluster wrapper.
-	 *
-	 * @var RedisCluster
-	 */
+/**
+ * Redis Cluster wrapper.
+ *
+ * @var RedisCluster
+ */
 	protected $_RedisCluster = null;
 
-	/**
-	 * Settings
-	 *
-	 * - seeds = array of host:port pairs for Redis Cluster nodes
-	 * - timeout = float timeout in seconds (default: 0)
-	 * - readTimeout = float timeout for read operations (default: 0)
-	 * - persistent = bool Connects to the Redis server with a persistent connection (default: true)
-	 *
-	 * @var array
-	 */
+/**
+ * Settings
+ *
+ * - seeds = array of host:port pairs for Redis Cluster nodes
+ * - timeout = float timeout in seconds (default: 0)
+ * - readTimeout = float timeout for read operations (default: 0)
+ * - persistent = bool Connects to the Redis server with a persistent connection (default: true)
+ *
+ * @var array
+ */
 	public $settings = array();
 
-	/**
-	 * Initialize the Cache Engine
-	 *
-	 * Called automatically by the cache frontend
-	 * To reinitialize the settings call Cache::engine('EngineName', [optional] settings = array());
-	 *
-	 * @param array $settings array of setting for the engine
-	 * @return bool True if the engine has been successfully initialized, false if not
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Initialize the Cache Engine
+ *
+ * Called automatically by the cache frontend
+ * To reinitialize the settings call Cache::engine('EngineName', [optional] settings = array());
+ *
+ * @param array $settings array of setting for the engine
+ * @return bool True if the engine has been successfully initialized, false if not
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function init($settings = array()) {
 		if (!class_exists('RedisCluster')) {
 			return false;
@@ -72,12 +72,12 @@ class RedisClusterEngine extends CacheEngine {
 		return $this->_connect();
 	}
 
-	/**
-	 * Connects to a Redis Cluster
-	 *
-	 * @return bool True if Redis Cluster was connected
-	 * @throws RedisException When cannot connect to the server
-	 */
+/**
+ * Connects to a Redis Cluster
+ *
+ * @return bool True if Redis Cluster was connected
+ * @throws RedisException When cannot connect to the server
+ */
 	protected function _connect() {
 		try {
 			$persistentId = null;
@@ -111,12 +111,12 @@ class RedisClusterEngine extends CacheEngine {
 		}
 	}
 
-	/**
-	 * Serializes value for storage
-	 *
-	 * @param mixed $value Value to serialize
-	 * @return string Serialized value
-	 */
+/**
+ * Serializes value for storage
+ *
+ * @param mixed $value Value to serialize
+ * @return string Serialized value
+ */
 	protected function _serializeValue($value) {
 		if (is_int($value)) {
 			return (string)$value;
@@ -124,12 +124,12 @@ class RedisClusterEngine extends CacheEngine {
 		return serialize($value);
 	}
 
-	/**
-	 * Calculates the duration value in seconds
-	 *
-	 * @param int|string $duration Duration value
-	 * @return int Duration in seconds
-	 */
+/**
+ * Calculates the duration value in seconds
+ *
+ * @param int|string $duration Duration value
+ * @return int Duration in seconds
+ */
 	protected function _getDuration($duration) {
 		if (!is_numeric($duration)) {
 			$duration = strtotime($duration) - time();
@@ -137,12 +137,12 @@ class RedisClusterEngine extends CacheEngine {
 		return $duration;
 	}
 
-	/**
-	 * Unserializes stored value
-	 *
-	 * @param string $value Serialized value
-	 * @return mixed Unserialized value
-	 */
+/**
+ * Unserializes stored value
+ *
+ * @param string $value Serialized value
+ * @return mixed Unserialized value
+ */
 	protected function _unserializeValue($value) {
 		if (is_numeric($value)) {
 			return (int)$value;
@@ -150,14 +150,14 @@ class RedisClusterEngine extends CacheEngine {
 		return unserialize($value);
 	}
 
-	/**
-	 * Sets a value in the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @param mixed $value Data to be cached
-	 * @param int $duration How long to cache the data, in seconds
-	 * @return bool True if the data was successfully cached, false on failure
-	 */
+/**
+ * Sets a value in the cache
+ *
+ * @param string $key Identifier for the data
+ * @param mixed $value Data to be cached
+ * @param int $duration How long to cache the data, in seconds
+ * @return bool True if the data was successfully cached, false on failure
+ */
 	protected function _setValue($key, $value, $duration) {
 		$value = $this->_serializeValue($value);
 		$duration = $this->_getDuration($duration);
@@ -169,12 +169,12 @@ class RedisClusterEngine extends CacheEngine {
 		return $this->_RedisCluster->setex($key, $duration, $value);
 	}
 
-	/**
-	 * Gets a value from the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
-	 */
+/**
+ * Gets a value from the cache
+ *
+ * @param string $key Identifier for the data
+ * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
+ */
 	protected function _getValue($key) {
 		$value = $this->_RedisCluster->get($key);
 
@@ -185,25 +185,25 @@ class RedisClusterEngine extends CacheEngine {
 		return $this->_unserializeValue($value);
 	}
 
-	/**
-	 * Deletes a value from the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
-	 */
+/**
+ * Deletes a value from the cache
+ *
+ * @param string $key Identifier for the data
+ * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
+ */
 	protected function _deleteValue($key) {
 		return $this->_RedisCluster->del($key) > 0;
 	}
 
-	/**
-	 * Write data for key into cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @param mixed $value Data to be cached
-	 * @param int|string|null $duration How long to cache the data, in seconds
-	 * @return bool True if the data was successfully cached, false on failure
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Write data for key into cache
+ *
+ * @param string $key Identifier for the data
+ * @param mixed $value Data to be cached
+ * @param int|string|null $duration How long to cache the data, in seconds
+ * @return bool True if the data was successfully cached, false on failure
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function write($key, $value, $duration = null) {
 		if (!$this->_RedisCluster) {
 			return false;
@@ -217,13 +217,13 @@ class RedisClusterEngine extends CacheEngine {
 		return $this->_setValue($key, $value, $duration);
 	}
 
-	/**
-	 * Read a key from the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Read a key from the cache
+ *
+ * @param string $key Identifier for the data
+ * @return mixed The cached data, or false if the data doesn't exist, has expired, or if there was an error fetching it
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function read($key) {
 		if (!$this->_RedisCluster) {
 			return false;
@@ -233,14 +233,14 @@ class RedisClusterEngine extends CacheEngine {
 		return $this->_getValue($key);
 	}
 
-	/**
-	 * Increments the value of an integer cached key
-	 *
-	 * @param string $key Identifier for the data
-	 * @param int $offset How much to increment
-	 * @return mixed New incremented value, false otherwise
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Increments the value of an integer cached key
+ *
+ * @param string $key Identifier for the data
+ * @param int $offset How much to increment
+ * @return mixed New incremented value, false otherwise
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function increment($key, $offset = 1) {
 		if (!$this->_RedisCluster) {
 			return false;
@@ -250,14 +250,14 @@ class RedisClusterEngine extends CacheEngine {
 		return (int)$this->_RedisCluster->incrBy($key, $offset);
 	}
 
-	/**
-	 * Decrements the value of an integer cached key
-	 *
-	 * @param string $key Identifier for the data
-	 * @param int $offset How much to subtract
-	 * @return mixed New decremented value, false otherwise
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Decrements the value of an integer cached key
+ *
+ * @param string $key Identifier for the data
+ * @param int $offset How much to subtract
+ * @return mixed New decremented value, false otherwise
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function decrement($key, $offset = 1) {
 		if (!$this->_RedisCluster) {
 			return false;
@@ -267,13 +267,13 @@ class RedisClusterEngine extends CacheEngine {
 		return (int)$this->_RedisCluster->decrBy($key, $offset);
 	}
 
-	/**
-	 * Delete a key from the cache
-	 *
-	 * @param string $key Identifier for the data
-	 * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Delete a key from the cache
+ *
+ * @param string $key Identifier for the data
+ * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function delete($key) {
 		if (!$this->_RedisCluster) {
 			return false;
@@ -283,13 +283,13 @@ class RedisClusterEngine extends CacheEngine {
 		return $this->_deleteValue($key);
 	}
 
-	/**
-	 * Delete all keys from the cache
-	 *
-	 * @param bool $check Optional - only delete expired cache items
-	 * @return bool True if the cache was successfully cleared, false otherwise
-	 * @throws RedisException When the Redis extension is not installed or cannot connect to the server
-	 */
+/**
+ * Delete all keys from the cache
+ *
+ * @param bool $check Optional - only delete expired cache items
+ * @return bool True if the cache was successfully cleared, false otherwise
+ * @throws RedisException When the Redis extension is not installed or cannot connect to the server
+ */
 	public function clear($check) {
 		if (!$this->_RedisCluster) {
 			return false;
@@ -307,12 +307,12 @@ class RedisClusterEngine extends CacheEngine {
 		return true;
 	}
 
-	/**
-	 * Returns the `group value` for each of the configured groups
-	 *
-	 * @param string $key The key to retrieve
-	 * @return string
-	 */
+/**
+ * Returns the `group value` for each of the configured groups
+ *
+ * @param string $key The key to retrieve
+ * @return string
+ */
 	public function groups($key) {
 		$value = $this->_RedisCluster->get($key);
 		if (!$value) {
@@ -322,22 +322,22 @@ class RedisClusterEngine extends CacheEngine {
 		return $value;
 	}
 
-	/**
-	 * Increments the group value to simulate deletion of all keys under a group
-	 * old values will remain in storage until they expire.
-	 *
-	 * @param string $group name of the group to be cleared
-	 * @return bool success
-	 */
+/**
+ * Increments the group value to simulate deletion of all keys under a group
+ * old values will remain in storage until they expire.
+ *
+ * @param string $group name of the group to be cleared
+ * @return bool success
+ */
 	public function clearGroup($group) {
 		return (bool)$this->_RedisCluster->incr($this->settings['prefix'] . $group);
 	}
 
-	/**
-	 * Disconnects from the redis server
-	 *
-	 * @return void
-	 */
+/**
+ * Disconnects from the redis server
+ *
+ * @return void
+ */
 	public function __destruct() {
 		if (!$this->settings['persistent']) {
 			$this->_RedisCluster->close();
