@@ -196,9 +196,9 @@ abstract class CacheEngine {
  * @return iterable A list of key value pairs. Cache keys that do not exist or are stale will have $default as value.
  * @throws NotImplementedException When the method is not implemented in the engine.
  */
- public function getMultiple(array $keys, $default = null): iterable {
-  throw new NotImplementedException(__CLASS__);
- }
+public function getMultiple(array $keys, $default = null) : iterable {
+ throw new NotImplementedException(__CLASS__);
+}
 
 /**
  * Persists a set of key => value pairs in the cache, with an optional TTL.
@@ -210,7 +210,7 @@ abstract class CacheEngine {
  * @return bool True on success and false on failure.
  * @throws NotImplementedException When the method is not implemented in the engine.
  */
- public function setMultiple($values, $ttl = null): bool {
-  throw new NotImplementedException(__CLASS__);
- }
+public function setMultiple($values, $ttl = null) : bool {
+ throw new NotImplementedException(__CLASS__);
+}
 }
