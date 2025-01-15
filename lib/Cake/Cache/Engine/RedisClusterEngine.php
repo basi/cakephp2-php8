@@ -52,6 +52,7 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @return bool True if connected successfully
  * @throws RedisClusterException When connection fails
+ * @link https://github.com/phpredis/phpredis/blob/develop/cluster.md
  */
 	protected function _connect() : bool {
 		try {
@@ -97,9 +98,13 @@ class RedisClusterEngine extends CacheEngine {
 
 /**
  * Serialize value for saving to Redis.
+ * This is needed instead of using Redis' in built serialization feature
+ * as it creates problems incrementing/decrementing initially set integer value.
  *
  * @param mixed $value Value to serialize
  * @return string Serialized value
+ * @link https://github.com/phpredis/phpredis/issues/81
+ * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L363-L380
  */
 	protected function _serializeValue($value) : string {
 		if (is_int($value)) {
@@ -112,9 +117,11 @@ class RedisClusterEngine extends CacheEngine {
 /**
  * Convert the various expressions of a TTL value into duration in seconds
  *
- * @param \DateInterval|int|null $ttl TTL value
+ * @param \DateInterval|int|null $ttl The TTL value of this item. If null is sent, the
+ *   driver's default duration will be used.
  * @return int Duration in seconds
  * @throws InvalidArgumentException When TTL value is invalid
+ * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/CacheEngine.php#L371-L393
  */
 	protected function _getDuration($ttl) : int {
 		if ($ttl === null) {
@@ -137,6 +144,7 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @param string $value Value to unserialize
  * @return mixed Unserialized value
+ * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L382-L395
  */
 	protected function _unserializeValue(string $value) {
 		if (preg_match('/^-?\d+$/', $value)) {
@@ -151,8 +159,11 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @param string $key Identifier for the data
  * @param mixed $value Data to be cached
- * @param \DateInterval|int|null $ttl TTL value
+ * @param \DateInterval|int|null $ttl Optional. The TTL value of this item. If no value is sent and
+ *   the driver supports TTL then the library may set a default value
+ *   for it or let the driver take care of that.
  * @return bool True if the data was successfully cached
+ * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L138-L159
  */
 	protected function _setValue(string $key, $value, $ttl = null) : bool {
 		$value = $this->_serializeValue($value);
@@ -181,7 +192,9 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @param string $key Identifier for the data
  * @param mixed $default Default value if key doesn't exist
- * @return mixed The cached data
+ * @return mixed The cached data, or the default if the data doesn't exist, has
+ *   expired, or if there was an error fetching it
+ * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L161-L177
  */
 	protected function _getValue(string $key, $default = null) {
 		$value = $this->redis->get($key);
@@ -207,6 +220,7 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @param string $key Identifier for the data
  * @return bool True if deleted successfully
+ * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L219-L230
  */
 	protected function _deleteValue(string $key) : bool {
 		return $this->redis->del($key) > 0;
@@ -227,6 +241,7 @@ class RedisClusterEngine extends CacheEngine {
  *
  * @param bool $check Only delete expired cache items
  * @return bool True if cache was cleared
+ * @link https://github.com/riesenia/cakephp-rediscluster/blob/master/src/Cache/Engine/RedisClusterEngine.php
  */
 	public function clear($check) : bool {
 		if ($check) {
