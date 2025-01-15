@@ -454,4 +454,25 @@ class FileEngine extends CacheEngine {
 		}
 		return false;
 	}
+
+    public function getMultiple(array $keys, $default = null): iterable {
+        $result = [];
+        foreach ($keys as $key) {
+            $result[$key] = $this->read($key);
+            if (false === $result[$key] && null !== $default) {
+                $result[$key] = $default;
+            }
+        }
+        return $result;
+    }
+
+    public function setMultiple($values, $ttl = null): bool
+    {
+        foreach ($values as $key => $value) {
+            if (false === $this->write($key, $value, $ttl)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

@@ -255,4 +255,23 @@ class RedisEngine extends CacheEngine {
 		}
 		return false;
 	}
+
+    public function getMultiple(array $keys, $default = null): iterable {
+        $result = $this->_Redis->mGet($keys);
+        if (null !== $default && empty($result)) {
+            return $default;
+        }
+        return $result;
+    }
+
+    public function setMultiple($values, $ttl = null): bool {
+        $set = $this->_Redis->mset($values);
+        if (false === $set) {
+            return false;
+        }
+        foreach ($values as $k) {
+            $this->_Redis->expire($k, $ttl);
+        }
+        return $set;
+    }
 }
