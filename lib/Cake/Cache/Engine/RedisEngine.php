@@ -264,7 +264,7 @@ class RedisEngine extends CacheEngine {
  * @return array A list of key value pairs. Cache keys that do not exist or are stale will have $default as value
  * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L138-L159
  */
-	public function getMultiple(array $keys, $default = null): iterable {
+	public function getMultiple(array $keys, $default = null) : iterable {
 		$result = $this->_Redis->mGet($keys);
 		if (null !== $default && empty($result)) {
 			return $default;
@@ -280,7 +280,7 @@ class RedisEngine extends CacheEngine {
  * @return bool True on success and false on failure
  * @link https://github.com/cakephp/cakephp/blob/4.x/src/Cache/Engine/RedisEngine.php#L161-L177
  */
-	public function setMultiple($values, $ttl = null): bool {
+	public function setMultiple($values, $ttl = null) : bool {
 		$set = $this->_Redis->mset($values);
 		if (false === $set) {
 			return false;
