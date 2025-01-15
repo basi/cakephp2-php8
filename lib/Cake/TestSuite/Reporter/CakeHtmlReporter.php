@@ -143,7 +143,9 @@ class CakeHtmlReporter extends CakeBaseReporter {
  */
 	public function paintFooter($result) {
 		echo $this->_buffer;
-		ob_end_flush();
+		if (ob_get_length()) {
+			ob_end_flush();
+		}
 
 		$colour = ($result->failureCount() + $result->errorCount() > 0 ? "red" : "green");
 		echo "</ul>\n";
