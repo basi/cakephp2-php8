@@ -1,7 +1,7 @@
 {
 	"name": "basi/cakephp2-php8",
 	"description": "The CakePHP framework",
-	"type": "library",
+	"type": "cakephp-library",
 	"keywords": ["framework"],
 	"homepage": "https://cakephp.org",
 	"license": "MIT",
