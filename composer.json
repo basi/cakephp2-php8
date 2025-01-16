@@ -21,7 +21,8 @@
 		"php": "^8.0",
 		"ext-mbstring": "*",
 		"symfony/polyfill-intl-icu": "^1.29",
-		"php81_bc/strftime": "^0.7.5"
+		"php81_bc/strftime": "^0.7.5",
+		"composer/installers": "^1.0"
 	},
 	"suggest": {
 		"ext-openssl": "You need to install ext-openssl or ext-mcrypt to use AES-256 encryption",
@@ -35,6 +36,9 @@
 	"config": {
 		"vendor-dir": "vendors/",
 		"process-timeout": 0
+	},
+	"extra": {
+		"installer-name": "Cake"
 	},
 	"autoload": {
 		"psr-4": {
