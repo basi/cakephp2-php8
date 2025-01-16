@@ -1,7 +1,7 @@
 {
 	"name": "basi/cakephp2-php8",
 	"description": "The CakePHP framework",
-	"type": "cakephp-library",
+	"type": "library",
 	"keywords": ["framework"],
 	"homepage": "https://cakephp.org",
 	"license": "MIT",
@@ -35,6 +35,11 @@
 	"config": {
 		"vendor-dir": "vendors/",
 		"process-timeout": 0
+	},
+	"autoload": {
+		"psr-4": {
+			"Cake\\": "./"
+		}
 	},
 	"bin": [
 		"lib/Cake/Console/cake"
