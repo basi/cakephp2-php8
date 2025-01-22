@@ -48,7 +48,7 @@ jobs:
         run: composer install --no-ansi --no-interaction --no-progress --ignore-platform-req=php
 
       - name: Install CodeSniffer Rule
-        run: vendor/bin/phpcs --config-set installed_paths vendor/cakephp/cakephp-codesniffer
+        run: vendors/bin/phpcs --config-set installed_paths vendors/cakephp/cakephp-codesniffer
 
       - name: Check CodeSniffer
-        run: vendor/bin/phpcs -p --extensions=php --standard=ruleset.xml ./lib/Cake
+        run: vendors/bin/phpcs -p --extensions=php --standard=ruleset.xml ./lib/Cake

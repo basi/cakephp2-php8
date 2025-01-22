@@ -78,7 +78,7 @@ jobs:
           tools: composer
 
       - name: Enable Autoload
-        run: echo "require_once dirname(__DIR__, 2) . DS . 'vendor/autoload.php';" >> app/Config/bootstrap.php
+        run: echo "require_once dirname(__DIR__, 2) . DS . 'vendors/autoload.php';" >> app/Config/bootstrap.php
 
       - name: locale-gen
         run: |
@@ -119,4 +119,4 @@ jobs:
         run: cp ./.github/workflows/configs/database.php ./app/Config/
 
       - name: Run Tests
-        run: ./vendor/bin/phpunit --stderr --verbose lib/Cake/Test/Case/AllTestsTest.php
+        run: ./vendors/bin/phpunit --stderr --verbose lib/Cake/Test/Case/AllTestsTest.php
