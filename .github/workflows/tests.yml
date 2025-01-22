@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   pull_request:
     branches:
       - '*'
@@ -27,12 +27,12 @@ jobs:
             db-type: pgsql
           - php-version: '8.0'
             db-type: sqlite
-          - php-version: '8.1'
+          - php-version: '8.2'
             db-type: mysql
 
     services:
       mysql:
-        image: mysql:5.6
+        image: mysql:5.7
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: cakephp_test
