@@ -3,7 +3,7 @@ name: PHP Coding Standard
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   pull_request:
     branches:
       - '*'
@@ -19,11 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         php-version:
-          - '7.4'
+          - '8.3'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install PHP with extensions
         uses: shivammathur/setup-php@v2
@@ -37,7 +37,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-php${{ matrix.php-version }}-composer-${{ hashFiles('**/composer.json') }}
@@ -48,7 +48,7 @@ jobs:
         run: composer install --no-ansi --no-interaction --no-progress --ignore-platform-req=php
 
       - name: Install CodeSniffer Rule
-        run: vendors/bin/phpcs --config-set installed_paths vendors/cakephp/cakephp-codesniffer
+        run: vendor/bin/phpcs --config-set installed_paths vendor/cakephp/cakephp-codesniffer
 
       - name: Check CodeSniffer
-        run: vendors/bin/phpcs -p --extensions=php --standard=ruleset.xml ./lib/Cake
+        run: vendor/bin/phpcs -p --extensions=php --standard=ruleset.xml ./lib/Cake

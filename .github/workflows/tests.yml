@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   pull_request:
     branches:
       - '*'
@@ -19,20 +19,20 @@ jobs:
       fail-fast: false
       matrix:
         php-version:
-          - '8.0'
+          - '8.3'
         db-type:
           - mysql
         include:
-          - php-version: '8.0'
+          - php-version: '8.3'
             db-type: pgsql
-          - php-version: '8.0'
+          - php-version: '8.3'
             db-type: sqlite
-          - php-version: '8.1'
+          - php-version: '8.3'
             db-type: mysql
 
     services:
       mysql:
-        image: mysql:5.6
+        image: mysql:5.7
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: cakephp_test
@@ -61,7 +61,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install PHP with extensions
         uses: shivammathur/setup-php@v2
@@ -78,7 +78,7 @@ jobs:
           tools: composer
 
       - name: Enable Autoload
-        run: echo "require_once dirname(__DIR__, 2) . DS . 'vendors/autoload.php';" >> app/Config/bootstrap.php
+        run: echo "require_once dirname(__DIR__, 2) . DS . 'vendor/autoload.php';" >> app/Config/bootstrap.php
 
       - name: locale-gen
         run: |
@@ -105,7 +105,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-php${{ matrix.php-version }}-composer-${{ hashFiles('**/composer.json') }}
@@ -119,4 +119,4 @@ jobs:
         run: cp ./.github/workflows/configs/database.php ./app/Config/
 
       - name: Run Tests
-        run: ./vendors/bin/phpunit --stderr --verbose lib/Cake/Test/Case/AllTestsTest.php
+        run: ./vendor/bin/phpunit --stderr --verbose lib/Cake/Test/Case/AllTestsTest.php
