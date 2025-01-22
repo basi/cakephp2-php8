@@ -1,4 +1,4 @@
-# To get started with Dependabot version updates, you'll need to specify which
+# To get started with Dependabot version updates you'll need to specify which
 # package ecosystems to update and where the package manifests are located.
 # Please see the documentation for all configuration options:
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
@@ -12,8 +12,6 @@ updates:
     ignore:
       - dependency-name: 'phpunit/phpunit'
         versions: ['10.x']
-      - dependency-name: 'cakephp/debug_kit'
-        versions: ['3.x', '4.x', '5.x']
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
