@@ -27,7 +27,7 @@ jobs:
             db-type: pgsql
           - php-version: '8.0'
             db-type: sqlite
-          - php-version: '8.2'
+          - php-version: '8.4'
             db-type: mysql
 
     services:
