@@ -1844,39 +1844,95 @@ class HttpSocketTest extends CakeTestCase {
 			1 => array('pipe', 'w'),
 			2 => array('pipe', 'w'),
 		);
-		$process = proc_open(
-			PHP_BINARY . ' ' . escapeshellarg(CAKE . 'Test' . DS . 'test_app' . DS . 'tls_server.php'),
-			$descriptorSpec,
-			$pipes
-		);
-		if (!is_resource($process)) {
-			$this->markTestSkipped('Unable to start the TLS fixture server.');
-		}
-
-		stream_set_timeout($pipes[1], 10);
-		$port = trim((string)fgets($pipes[1]));
-		if (!is_numeric($port)) {
-			fclose($pipes[1]);
-			fclose($pipes[2]);
-			proc_terminate($process);
-			proc_close($process);
-			$this->markTestSkipped('TLS fixture server did not start.');
-		}
+		$process = null;
+		$pipes = array();
+		$configFile = null;
+		$pemFile = null;
+		$fixtureInteractionsComplete = false;
+		$processExitCode = null;
 
 		try {
+			$configFile = tempnam(sys_get_temp_dir(), 'cake_tls_config_');
+			$pemFile = tempnam(sys_get_temp_dir(), 'cake_tls_');
+			if ($configFile === false || $pemFile === false) {
+				$this->fail('Unable to create the TLS fixture temporary files.');
+			}
+
+			$process = proc_open(
+				array(
+					PHP_BINARY,
+					CAKE . 'Test' . DS . 'test_app' . DS . 'tls_server.php',
+					$configFile,
+					$pemFile,
+				),
+				$descriptorSpec,
+				$pipes
+			);
+			if (!is_resource($process)) {
+				$this->fail('Unable to start the TLS fixture server.');
+			}
+
+			stream_set_timeout($pipes[1], 10);
+			stream_set_blocking($pipes[2], false);
+			$fixture = json_decode(trim((string)fgets($pipes[1])), true);
+			if (!is_array($fixture) || !isset($fixture['port'])) {
+				$stderr = trim((string)stream_get_contents($pipes[2]));
+				$message = 'TLS fixture server did not start.';
+				if ($stderr !== '') {
+					$message .= ' ' . $stderr;
+				}
+				$this->fail($message);
+			}
+
+			$port = (int)$fixture['port'];
+			clearstatcache(true, $pemFile);
+			if ($port < 1 || $port > 65535 || !is_file($pemFile) || filesize($pemFile) < 1) {
+				$this->fail('TLS fixture server returned invalid startup information.');
+			}
+
+			$url = 'https://127.0.0.1:' . $port . '/';
+			$allowSelfSignedSocket = new HttpSocket(array(
+				'timeout' => 10,
+				'ssl_allow_self_signed' => true,
+			));
+			$response = $allowSelfSignedSocket->get($url);
+			$this->assertEquals(200, $response->code, 'The TLS fixture certificate must be valid for 127.0.0.1.');
+
 			$socket = new HttpSocket(array('timeout' => 10));
 			try {
-				$socket->get('https://127.0.0.1:' . $port . '/');
+				$socket->get($url);
 				$this->fail('Peer verification must reject the self-signed certificate, but the request succeeded.');
 			} catch (SocketException $e) {
 				$this->assertStringContainsString('Failed to enable crypto', $e->getMessage());
 			}
+			$fixtureInteractionsComplete = true;
 		} finally {
-			fclose($pipes[1]);
-			fclose($pipes[2]);
-			proc_terminate($process);
-			proc_close($process);
+			foreach ($pipes as $pipe) {
+				if (is_resource($pipe)) {
+					fclose($pipe);
+				}
+			}
+			if (is_resource($process)) {
+				if (!$fixtureInteractionsComplete) {
+					proc_terminate($process);
+				}
+				$processExitCode = proc_close($process);
+			}
+			foreach (array($configFile, $pemFile) as $temporaryFile) {
+				if (is_string($temporaryFile)) {
+					clearstatcache(true, $temporaryFile);
+					if (is_file($temporaryFile)) {
+						@unlink($temporaryFile);
+					}
+				}
+			}
 		}
+
+		$this->assertEquals(0, $processExitCode, 'TLS fixture server exited with an error.');
+		clearstatcache(true, $configFile);
+		$this->assertFalse(is_file($configFile), 'TLS fixture OpenSSL config file was not removed.');
+		clearstatcache(true, $pemFile);
+		$this->assertFalse(is_file($pemFile), 'TLS fixture certificate file was not removed.');
 	}
 
 /**
