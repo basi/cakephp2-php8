@@ -994,6 +994,7 @@ class View extends CakeObject {
  * @param string $name Controller action to find template filename for
  * @return string Template filename
  * @throws MissingViewException when a view file could not be found.
+ * @throws InvalidArgumentException when the resolved file is outside the view paths.
  */
 	protected function _getViewFileName($name = null) {
 		$subDir = null;
@@ -1024,7 +1025,7 @@ class View extends CakeObject {
 		foreach ($exts as $ext) {
 			foreach ($paths as $path) {
 				if (file_exists($path . $name . $ext)) {
-					return $path . $name . $ext;
+					return $this->_checkFilePath($path . $name . $ext, $plugin);
 				}
 			}
 		}
@@ -1059,6 +1060,7 @@ class View extends CakeObject {
  * @param string $name The name of the layout to find.
  * @return string Filename for layout file (.ctp).
  * @throws MissingLayoutException when a layout cannot be located
+ * @throws InvalidArgumentException when the resolved file is outside the view paths.
  */
 	protected function _getLayoutFileName($name = null) {
 		if ($name === null) {
@@ -1077,7 +1079,7 @@ class View extends CakeObject {
 		foreach ($exts as $ext) {
 			foreach ($paths as $path) {
 				if (file_exists($path . $file . $ext)) {
-					return $path . $file . $ext;
+					return $this->_checkFilePath($path . $file . $ext, $plugin);
 				}
 			}
 		}
@@ -1102,6 +1104,7 @@ class View extends CakeObject {
  *
  * @param string $name The name of the element to find.
  * @return mixed Either a string to the element filename or false when one can't be found.
+ * @throws InvalidArgumentException when the resolved file is outside the view paths.
  */
 	protected function _getElementFileName($name) {
 		list($plugin, $name) = $this->pluginSplit($name);
@@ -1111,11 +1114,47 @@ class View extends CakeObject {
 		foreach ($exts as $ext) {
 			foreach ($paths as $path) {
 				if (file_exists($path . 'Elements' . DS . $name . $ext)) {
-					return $path . 'Elements' . DS . $name . $ext;
+					return $this->_checkFilePath($path . 'Elements' . DS . $name . $ext, $plugin);
 				}
 			}
 		}
 		return false;
+	}
+
+/**
+ * Check that a resolved template path is contained within one of the view paths.
+ *
+ * Paths that contain no `..` segment cannot escape the view path they were
+ * built from, so they are returned as is. Any other path is resolved with
+ * realpath() and must be contained in one of View::_paths().
+ *
+ * @param string $file The resolved path to the template file.
+ * @param string $plugin The plugin the file was resolved for, if any.
+ * @return string The unmodified file path.
+ * @throws InvalidArgumentException When the file is not within a view path.
+ */
+	protected function _checkFilePath($file, $plugin = null) {
+		if (strpos($file, '..') === false) {
+			return $file;
+		}
+		$absolute = realpath($file);
+		if ($absolute === false) {
+			return $file;
+		}
+		foreach ($this->_paths($plugin) as $path) {
+			if (strpos($absolute, rtrim($path, DS) . DS) === 0) {
+				return $file;
+			}
+			$root = realpath($path);
+			if ($root !== false && strpos($absolute, rtrim($root, DS) . DS) === 0) {
+				return $file;
+			}
+		}
+		throw new InvalidArgumentException(__d(
+			'cake_dev',
+			'Cannot use "%s" as a template, it is not within any view template path.',
+			$file
+		));
 	}
 
 /**

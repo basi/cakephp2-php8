@@ -949,6 +949,73 @@ class ViewTest extends CakeTestCase {
 	}
 
 /**
+ * Test that elements outside of the view paths cannot be rendered.
+ *
+ * @return void
+ */
+	public function testElementPathEscape() {
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage('it is not within any view template path.');
+		$this->View->element('../../../../Console/Templates/default/views/index');
+	}
+
+/**
+ * Test that relative paths resolving inside the Elements directory still work.
+ *
+ * @return void
+ */
+	public function testElementPathRelativeInsideElements() {
+		$result = $this->View->element('nocache/../test_element');
+		$this->assertSame('this is the test element', $result);
+	}
+
+/**
+ * Test that relative paths leaving Elements but staying inside a view path work.
+ *
+ * @return void
+ */
+	public function testElementPathRelativeInsideViewPath() {
+		$result = $this->View->element('../Posts/index');
+		$this->assertSame('posts index', $result);
+	}
+
+/**
+ * Test that layouts outside of the view paths cannot be resolved.
+ *
+ * @return void
+ */
+	public function testLayoutPathEscape() {
+		$View = new TestView($this->PostsController);
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage('it is not within any view template path.');
+		$View->getLayoutFileName('../../../../Console/Templates/default/views/index');
+	}
+
+/**
+ * Test that views outside of the view paths cannot be resolved.
+ *
+ * @return void
+ */
+	public function testViewPathEscape() {
+		$View = new TestView($this->PostsController);
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage('it is not within any view template path.');
+		$View->getViewFileName('../../../../Console/Templates/default/views/index');
+	}
+
+/**
+ * Test that the leading-slash view name branch cannot escape the view paths.
+ *
+ * @return void
+ */
+	public function testViewPathEscapeLeadingSlash() {
+		$View = new TestView($this->PostsController);
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage('it is not within any view template path.');
+		$View->getViewFileName('/../../../Console/Templates/default/views/index');
+	}
+
+/**
  * Test loadHelpers method
  *
  * @return void
