@@ -1832,21 +1832,50 @@ class HttpSocketTest extends CakeTestCase {
 	}
 
 /**
- * Test that requests fail when peer verification fails.
+ * Test that requests fail when peer verification fails, using a local TLS server with a self-signed certificate.
  *
  * @return void
  */
 	public function testVerifyPeer() {
 		$this->skipIf(!extension_loaded('openssl'), 'OpenSSL is not enabled cannot test SSL.');
-		$socket = new HttpSocket();
+		$this->skipIf(!function_exists('proc_open'), 'proc_open is not available, cannot start the TLS fixture server.');
+
+		$descriptorSpec = array(
+			1 => array('pipe', 'w'),
+			2 => array('pipe', 'w'),
+		);
+		$process = proc_open(
+			PHP_BINARY . ' ' . escapeshellarg(CAKE . 'Test' . DS . 'test_app' . DS . 'tls_server.php'),
+			$descriptorSpec,
+			$pipes
+		);
+		if (!is_resource($process)) {
+			$this->markTestSkipped('Unable to start the TLS fixture server.');
+		}
+
+		stream_set_timeout($pipes[1], 10);
+		$port = trim((string)fgets($pipes[1]));
+		if (!is_numeric($port)) {
+			fclose($pipes[1]);
+			fclose($pipes[2]);
+			proc_terminate($process);
+			proc_close($process);
+			$this->markTestSkipped('TLS fixture server did not start.');
+		}
+
 		try {
-			$socket->get('https://tv.eurosport.com/');
-			$this->markTestSkipped('Found valid certificate, was expecting invalid certificate.');
-		} catch (SocketException $e) {
-			$message = $e->getMessage();
-			$this->skipIf(strpos($message, 'php_network_getaddresses') !== false, 'Test host could not be resolved, skipping.');
-			$this->skipIf(strpos($message, 'Invalid HTTP') !== false, 'Invalid HTTP Response received, skipping.');
-			$this->assertStringContainsString('Failed to enable crypto', $message);
+			$socket = new HttpSocket(array('timeout' => 10));
+			try {
+				$socket->get('https://127.0.0.1:' . $port . '/');
+				$this->fail('Peer verification must reject the self-signed certificate, but the request succeeded.');
+			} catch (SocketException $e) {
+				$this->assertStringContainsString('Failed to enable crypto', $e->getMessage());
+			}
+		} finally {
+			fclose($pipes[1]);
+			fclose($pipes[2]);
+			proc_terminate($process);
+			proc_close($process);
 		}
 	}
 
