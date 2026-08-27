@@ -29,12 +29,26 @@
 		"ext-intl": "Required to use IntlDateFormatter instead of strftime, if not Symfony polyfill will be used."
 	},
 	"require-dev": {
-		"phpunit/phpunit": "^9.5",
+		"phpunit/phpunit": "^9.6.33",
 		"cakephp/cakephp-codesniffer": "^1.0.0"
 	},
 	"config": {
 		"vendor-dir": "vendors/",
-		"process-timeout": 0
+		"process-timeout": 0,
+		"policy": {
+			"advisories": {
+				"ignore-id": {
+					"PKSA-6vdd-n4sx-knhy": {
+						"on-audit": false,
+						"reason": "phpcs 1.x arbitrary shell execution (GHSA-mhfv-8rc9-w38c). squizlabs/php_codesniffer is pinned to 1.x by cakephp-codesniffer 1.x (CakePHP2 coding standard), a dev-only tool never shipped to production. Unblocks install only; still reported by composer audit. Temporary exception until a fix is backported."
+					},
+					"CVE-2026-67434": {
+						"on-audit": false,
+						"reason": "phpcs OS command injection (PKSA-rdkp-vv9z-mjkg / GHSA-hmqg-cxww-wqhq). Same rationale as PKSA-6vdd-n4sx-knhy."
+					}
+				}
+			}
+		}
 	},
 	"bin": [
 		"lib/Cake/Console/cake"

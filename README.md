@@ -28,7 +28,7 @@ Here are steps I took to migrate my project through all versions to PHP 8.1, may
 
 ## Before using this fork ⚠️
 
-- ~~Tests of CakePHP framework aren't refactored yet to support PHP 8. Main issue is old version of PHPUnit that is tightly coupled to framework's tests. Issue for fixing this situation is here: https://github.com/kamilwylegala/cakephp2-php8/issues/7~~ Framework tests are migrated to PHPUnit 9.*. Github actions are running tests on PHP 8.0, 8.1.
+- ~~Tests of CakePHP framework aren't refactored yet to support PHP 8. Main issue is old version of PHPUnit that is tightly coupled to framework's tests. Issue for fixing this situation is here: https://github.com/kamilwylegala/cakephp2-php8/issues/7~~ Framework tests are migrated to PHPUnit 9.*. Github actions are running tests on PHP 8.0, 8.4.
 - ~~Due to lack of tests ☝️~~ - **you also need to rely** on tests in your application after integrating with this fork.
 - If after integration you spot any issues related to framework please let me know by creating an issue or pull request with fix.
 
