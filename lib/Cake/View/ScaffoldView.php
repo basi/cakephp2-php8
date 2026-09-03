@@ -34,6 +34,7 @@ class ScaffoldView extends View {
  * @param string $name name of the view file to get.
  * @return string action
  * @throws MissingViewException
+ * @throws InvalidArgumentException when the resolved file is outside the view paths.
  */
 	protected function _getViewFileName($name = null) {
 		if ($name === null) {
@@ -75,7 +76,7 @@ class ScaffoldView extends View {
 			foreach ($paths as $path) {
 				foreach ($names as $name) {
 					if (file_exists($path . $name . $ext)) {
-						return $path . $name . $ext;
+						return $this->_checkFilePath($path . $name . $ext, $this->plugin);
 					}
 				}
 			}

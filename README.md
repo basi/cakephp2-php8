@@ -59,6 +59,10 @@ It means that composer will look at `master` branch of repository configured und
 
 ## Changelog
 
+### 2026-08-26
+
+- Security: backported the view template path containment check from CakePHP 4.5.11 (CVE-2026-48820 / GHSA-wpvj-hjcr-h3p2). Element / view / layout names resolving outside the configured view template paths now throw `InvalidArgumentException`. BC note: `elementExists()` now throws for such names instead of returning `false`.
+
 ### 2025-02-04
 
 - Fixes for PHP 8.4: `session_set_save_handler` accepts object, removed `E_STRICT` reference.
