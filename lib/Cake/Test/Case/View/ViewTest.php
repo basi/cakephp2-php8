@@ -162,6 +162,16 @@ class TestView extends View {
 	}
 
 /**
+ * getElementFileName method
+ *
+ * @param string $name The name of the element to find.
+ * @return mixed Either a string to the element filename or false when one can't be found.
+ */
+	public function getElementFileName($name) {
+		return $this->_getElementFileName($name);
+	}
+
+/**
  * paths method
  *
  * @param string $plugin Optional plugin name to scan for view files.
@@ -975,7 +985,12 @@ class ViewTest extends CakeTestCase {
  * @return void
  */
 	public function testElementPathRelativeInsideViewPath() {
-		$result = $this->View->element('../Posts/index');
+		$View = new TestView($this->PostsController);
+		$file = $View->getElementFileName('../Posts/index');
+		$expected = CAKE . 'Test' . DS . 'test_app' . DS . 'View' . DS . 'Posts' . DS . 'index.ctp';
+		$this->assertSame(realpath($expected), $file);
+
+		$result = $View->element('../Posts/index');
 		$this->assertSame('posts index', $result);
 	}
 

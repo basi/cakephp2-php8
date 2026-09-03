@@ -1126,11 +1126,12 @@ class View extends CakeObject {
  *
  * Paths that contain no `..` segment cannot escape the view path they were
  * built from, so they are returned as is. Any other path is resolved with
- * realpath() and must be contained in one of View::_paths().
+ * realpath() and must be contained in one of View::_paths(). The canonical
+ * path is returned after validation.
  *
  * @param string $file The resolved path to the template file.
  * @param string $plugin The plugin the file was resolved for, if any.
- * @return string The unmodified file path.
+ * @return string The unmodified or canonical file path.
  * @throws InvalidArgumentException When the file is not within a view path.
  */
 	protected function _checkFilePath($file, $plugin = null) {
@@ -1143,11 +1144,11 @@ class View extends CakeObject {
 		}
 		foreach ($this->_paths($plugin) as $path) {
 			if (strpos($absolute, rtrim($path, DS) . DS) === 0) {
-				return $file;
+				return $absolute;
 			}
 			$root = realpath($path);
 			if ($root !== false && strpos($absolute, rtrim($root, DS) . DS) === 0) {
-				return $file;
+				return $absolute;
 			}
 		}
 		throw new InvalidArgumentException(__d(
