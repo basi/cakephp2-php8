@@ -223,7 +223,9 @@ class Security {
 			return '';
 		}
 
-		srand((int)(float)Configure::read('Security.cipherSeed'));
+		// cipherSeed usually exceeds PHP_INT_MAX. PHP 8.5+ warns on the lossy cast,
+		// but the resulting seed must stay the same to decrypt existing data.
+		srand(@(int)(float)Configure::read('Security.cipherSeed'));
 		$out = '';
 		$keyLength = strlen($key);
 		for ($i = 0, $textLength = strlen($text); $i < $textLength; $i++) {

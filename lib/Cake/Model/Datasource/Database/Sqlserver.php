@@ -414,9 +414,10 @@ class Sqlserver extends DboSource {
 			if (!strpos(strtolower($limit), 'top') || strpos(strtolower($limit), 'top') === 0) {
 				$rt = ' TOP';
 			}
-			$rt .= sprintf(' %u', $limit);
+			// Values beyond PHP_INT_MAX trigger a warning on PHP 8.5+ when cast by %u.
+			$rt .= @sprintf(' %u', $limit);
 			if ((is_int($offset) || ctype_digit($offset)) && $offset > 0) {
-				$rt = sprintf(' OFFSET %u ROWS FETCH FIRST %u ROWS ONLY', $offset, $limit);
+				$rt = @sprintf(' OFFSET %u ROWS FETCH FIRST %u ROWS ONLY', $offset, $limit);
 			}
 			return $rt;
 		}

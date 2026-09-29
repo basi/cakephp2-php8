@@ -3067,11 +3067,12 @@ class DboSource extends DataSource {
 		if ($limit) {
 			$rt = ' LIMIT';
 
+			// Values beyond PHP_INT_MAX trigger a warning on PHP 8.5+ when cast by %u.
 			if ($offset) {
-				$rt .= sprintf(' %u,', $offset);
+				$rt .= @sprintf(' %u,', $offset);
 			}
 
-			$rt .= sprintf(' %u', $limit);
+			$rt .= @sprintf(' %u', $limit);
 			return $rt;
 		}
 		return null;

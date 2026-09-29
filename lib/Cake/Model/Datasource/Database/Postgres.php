@@ -681,9 +681,10 @@ class Postgres extends DboSource {
  */
 	public function limit($limit, $offset = null) {
 		if ($limit) {
-			$rt = sprintf(' LIMIT %u', $limit);
+			// Values beyond PHP_INT_MAX trigger a warning on PHP 8.5+ when cast by %u.
+			$rt = @sprintf(' LIMIT %u', $limit);
 			if ($offset) {
-				$rt .= sprintf(' OFFSET %u', $offset);
+				$rt .= @sprintf(' OFFSET %u', $offset);
 			}
 			return $rt;
 		}
