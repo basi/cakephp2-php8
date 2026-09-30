@@ -163,13 +163,19 @@ class Mysql extends DboSource {
 		$config = $this->config;
 		$this->connected = false;
 
-		// PDO::MYSQL_ATTR_* constants are deprecated in PHP 8.5; Pdo\Mysql class is available since PHP 8.1
-		if (class_exists('Pdo\Mysql')) {
+		// PDO::MYSQL_ATTR_* constants are deprecated as of PHP 8.5 in favor of Pdo\Mysql::ATTR_* (available since PHP 8.4)
+		if (PHP_VERSION_ID >= 80400) {
 			$mysqlAttrUseBufferedQuery = Pdo\Mysql::ATTR_USE_BUFFERED_QUERY;
 			$mysqlAttrInitCommand = Pdo\Mysql::ATTR_INIT_COMMAND;
+			$mysqlAttrSslKey = Pdo\Mysql::ATTR_SSL_KEY;
+			$mysqlAttrSslCert = Pdo\Mysql::ATTR_SSL_CERT;
+			$mysqlAttrSslCa = Pdo\Mysql::ATTR_SSL_CA;
 		} else {
 			$mysqlAttrUseBufferedQuery = PDO::MYSQL_ATTR_USE_BUFFERED_QUERY;
 			$mysqlAttrInitCommand = PDO::MYSQL_ATTR_INIT_COMMAND;
+			$mysqlAttrSslKey = PDO::MYSQL_ATTR_SSL_KEY;
+			$mysqlAttrSslCert = PDO::MYSQL_ATTR_SSL_CERT;
+			$mysqlAttrSslCa = PDO::MYSQL_ATTR_SSL_CA;
 		}
 
 		$flags = $config['flags'] + array(
@@ -182,11 +188,11 @@ class Mysql extends DboSource {
 			$flags[$mysqlAttrInitCommand] = 'SET NAMES ' . $config['encoding'];
 		}
 		if (!empty($config['ssl_key']) && !empty($config['ssl_cert'])) {
-			$flags[PDO::MYSQL_ATTR_SSL_KEY] = $config['ssl_key'];
-			$flags[PDO::MYSQL_ATTR_SSL_CERT] = $config['ssl_cert'];
+			$flags[$mysqlAttrSslKey] = $config['ssl_key'];
+			$flags[$mysqlAttrSslCert] = $config['ssl_cert'];
 		}
 		if (!empty($config['ssl_ca'])) {
-			$flags[PDO::MYSQL_ATTR_SSL_CA] = $config['ssl_ca'];
+			$flags[$mysqlAttrSslCa] = $config['ssl_ca'];
 		}
 		if (empty($config['unix_socket'])) {
 			$dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']}";
