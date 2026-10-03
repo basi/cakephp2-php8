@@ -267,6 +267,34 @@ class SecurityTest extends CakeTestCase {
 	}
 
 /**
+ * Known-answer vectors for Security::cipher(), generated with the former (int)(float)
+ * seed cast (identical on PHP 8.0, 8.4 and 8.5): a seed within the int range, one
+ * beyond PHP_INT_MAX and the default seed.
+ *
+ * @return array
+ */
+	public static function cipherKnownAnswerProvider() {
+		return array(
+			array('1234567890', 'fff77dcb883732592dd235ad622645e18405cb'),
+			array('12345678901234567890', 'b209c722829c974771a534cebda99e52d70f26'),
+			array('76859309657453542496749683645', 'a0236698a8b6c059f17f023f2666bfbe328fee'),
+		);
+	}
+
+/**
+ * Test that Security::cipher() output does not change, so existing data can still be decrypted.
+ *
+ * @dataProvider cipherKnownAnswerProvider
+ * @param string $seed Security.cipherSeed value.
+ * @param string $expected Expected ciphertext as hex.
+ * @return void
+ */
+	public function testCipherKnownAnswer($seed, $expected) {
+		Configure::write('Security.cipherSeed', $seed);
+		$this->assertSame($expected, bin2hex(Security::cipher('The quick brown fox', 'my_key')));
+	}
+
+/**
  * testCipherEmptyKey method
  *
  * @return void
