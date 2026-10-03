@@ -66,6 +66,10 @@ It means that composer will look at `master` branch of repository configured und
   - `DboSource::limit()` and the `Postgres` / `Sqlite` / `Sqlserver` overrides clamp float limit / offset values that do not fit in an int to `PHP_INT_MAX`. BC note: such floats (≥ 2^63) used to wrap around in the generated SQL (e.g. 2^64 became `0`); they now become `PHP_INT_MAX`.
 - Added PHP 8.5 to CI.
 
+### 2026-09-30
+
+- Fix the PHP 8.5 `PDO::MYSQL_ATTR_*` deprecations in the MySQL datasource: on PHP >= 8.4, `Mysql::connect()` uses the `Pdo\Mysql::ATTR_*` constants, including the SSL ones (based on kamilwylegala/cakephp2-php8#86). Apps passing `PDO::MYSQL_ATTR_*` in the datasource `flags` option should switch to `Pdo\Mysql::ATTR_*` on PHP >= 8.4 as well.
+
 ### 2026-08-26
 
 - Security: backported the view template path containment check from CakePHP 4.5.11 (CVE-2026-48820 / GHSA-wpvj-hjcr-h3p2). Element / view / layout names resolving outside the configured view template paths now throw `InvalidArgumentException`. BC note: `elementExists()` now throws for such names instead of returning `false`.

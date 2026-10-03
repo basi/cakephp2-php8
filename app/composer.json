@@ -19,8 +19,7 @@
 	},
 	"require": {
 		"php": ">=5.3.0",
-		"ext-mcrypt": "*",
-		"cakephp/cakephp": "~2.9"
+		"ext-mcrypt": "*"
 	},
 	"suggest": {
 		"cakephp/cakephp-codesniffer": "Easily check code formatting against the CakePHP coding standards."
