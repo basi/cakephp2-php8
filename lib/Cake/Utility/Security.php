@@ -223,9 +223,12 @@ class Security {
 			return '';
 		}
 
-		// cipherSeed usually exceeds PHP_INT_MAX. PHP 8.5+ warns on the lossy cast,
-		// but the resulting seed must stay the same to decrypt existing data.
-		srand(@(int)(float)Configure::read('Security.cipherSeed'));
+		// mt_srand() only uses the low 32 bits of the seed, and fmod() is exact. This keeps
+		// the seed of the former (int)(float) cast without casting an out-of-range float
+		// to int (the seed usually exceeds PHP_INT_MAX, and PHP 8.5+ warns on such casts).
+		// A non-finite seed maps to 0, as that cast did.
+		$seed = (float)Configure::read('Security.cipherSeed');
+		srand(is_finite($seed) ? (int)fmod($seed, 4294967296) : 0);
 		$out = '';
 		$keyLength = strlen($key);
 		for ($i = 0, $textLength = strlen($text); $i < $textLength; $i++) {
