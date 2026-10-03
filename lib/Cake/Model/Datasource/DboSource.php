@@ -3067,15 +3067,30 @@ class DboSource extends DataSource {
 		if ($limit) {
 			$rt = ' LIMIT';
 
-			// Values beyond PHP_INT_MAX trigger a warning on PHP 8.5+ when cast by %u.
 			if ($offset) {
-				$rt .= @sprintf(' %u,', $offset);
+				$rt .= sprintf(' %u,', $this->_clampLimitValue($offset));
 			}
 
-			$rt .= @sprintf(' %u', $limit);
+			$rt .= sprintf(' %u', $this->_clampLimitValue($limit));
 			return $rt;
 		}
 		return null;
+	}
+
+/**
+ * Clamps a float LIMIT/OFFSET value that does not fit in an int.
+ *
+ * sprintf('%u') wraps such floats around (2^64 becomes 0), and PHP 8.5+ warns about
+ * that cast. Numeric strings are already saturated by the same cast.
+ *
+ * @param mixed $value Limit or offset value.
+ * @return mixed PHP_INT_MAX for floats that do not fit in an int, $value otherwise.
+ */
+	protected function _clampLimitValue($value) {
+		if (is_float($value) && $value >= PHP_INT_MAX) {
+			return PHP_INT_MAX;
+		}
+		return $value;
 	}
 
 /**
