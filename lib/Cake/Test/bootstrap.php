@@ -26,4 +26,10 @@ App::uses('CakeTestSuite', 'TestSuite');
 App::uses('ControllerTestCase', 'TestSuite');
 App::uses('CakeTestModel', 'TestSuite/Fixture');
 
+/*
+ * lib/Cake/bootstrap.php and the `Error.level` setting exclude E_DEPRECATED at runtime,
+ * which would hide deprecations from the error handler below. Report everything in tests.
+ */
+error_reporting(E_ALL);
+
 set_error_handler(new \PHPUnit\Util\ErrorHandler(true, true, true, true));
