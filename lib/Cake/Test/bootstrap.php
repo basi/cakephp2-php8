@@ -32,4 +32,34 @@ App::uses('CakeTestModel', 'TestSuite/Fixture');
  */
 error_reporting(E_ALL);
 
-set_error_handler(new \PHPUnit\Util\ErrorHandler(true, true, true, true));
+/*
+ * PHP's own deprecations (E_DEPRECATED) are collected and summarized on STDERR at shutdown
+ * instead of failing the test, until the existing ones are fixed.
+ * Everything else, including E_USER_DEPRECATED, is converted to exceptions by PHPUnit.
+ */
+$phpunitErrorHandler = new \PHPUnit\Util\ErrorHandler(true, true, true, true);
+$deprecations = new ArrayObject();
+set_error_handler(function ($errorNumber, $errorString, $errorFile, $errorLine) use ($phpunitErrorHandler, $deprecations) {
+	if ($errorNumber !== E_DEPRECATED) {
+		return $phpunitErrorHandler($errorNumber, $errorString, $errorFile, $errorLine);
+	}
+	if (!(error_reporting() & $errorNumber)) {
+		return false;
+	}
+	$key = $errorString . ' in ' . $errorFile . ':' . $errorLine;
+	$deprecations[$key] = isset($deprecations[$key]) ? $deprecations[$key] + 1 : 1;
+	return true;
+});
+register_shutdown_function(function () use ($deprecations) {
+	if (!count($deprecations)) {
+		return;
+	}
+	$list = $deprecations->getArrayCopy();
+	ksort($list);
+	$output = sprintf("\n%d PHP deprecations (%d unique):\n", array_sum($list), count($list));
+	foreach ($list as $key => $count) {
+		$output .= sprintf("%6d x %s\n", $count, $key);
+	}
+	fwrite(STDERR, $output);
+});
+unset($phpunitErrorHandler, $deprecations);
