@@ -990,7 +990,9 @@ class CakeTimeTest extends CakeTestCase {
 
 	public function testFromStringWithDateTimeAsia() {
 		date_default_timezone_set('Australia/Melbourne');
-		$date = new DateTime('+1 hour', new DateTimeZone('America/New_York'));
+		// Use a fixed date: CakeTime::convert() evaluates the server offset at the shifted local timestamp,
+		// so a relative date fails within about 11 hours before a Melbourne DST change.
+		$date = new DateTime('2019-01-31 10:00:00', new DateTimeZone('America/New_York'));
 		$result = $this->Time->fromString($date, 'Asia/Kuwait');
 		$date->setTimezone(new DateTimeZone('Asia/Kuwait'));
 		$expected = $date->format('U') + $date->getOffset();
