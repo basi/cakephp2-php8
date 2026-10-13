@@ -1150,8 +1150,14 @@ class PostgresTest extends CakeTestCase {
 		$this->assertEquals(' LIMIT 20 OFFSET 10', $result);
 
 		$result = $db->limit(10, 300000000000000000000000000000);
-		$scientificNotation = sprintf('%.1E', 300000000000000000000000000000);
-		$this->assertStringNotContainsString($scientificNotation, $result);
+		$this->assertSame(' LIMIT 10 OFFSET ' . PHP_INT_MAX, $result);
+
+		// Offset of a page clamped to PHP_INT_MAX by PaginatorComponent. It must not wrap around to 0.
+		$result = $db->limit(20, (PHP_INT_MAX - 1) * 20);
+		$this->assertSame(' LIMIT 20 OFFSET ' . PHP_INT_MAX, $result);
+
+		$result = $db->limit(18446744073709551615);
+		$this->assertSame(' LIMIT ' . PHP_INT_MAX, $result);
 	}
 
 /**
