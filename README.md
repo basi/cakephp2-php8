@@ -59,6 +59,11 @@ It means that composer will look at `master` branch of repository configured und
 
 ## Changelog
 
+### 2026-10-17
+
+- Fixed PHP 8.1+ deprecations in `Sqlite::describe()` and `Postgres::describe()` when a column has no default value (`null` was passed to `trim()` / `strtoupper()` / `preg_replace()`). The described schema is unchanged.
+- Added PostgreSQL and SQLite on PHP 8.5 to CI.
+
 ### 2026-10-03
 
 - Fixes for PHP 8.5: avoided out-of-range float to int casts, which warn on PHP 8.5.
