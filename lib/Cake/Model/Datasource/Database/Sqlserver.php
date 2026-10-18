@@ -415,8 +415,10 @@ class Sqlserver extends DboSource {
 				$rt = ' TOP';
 			}
 			$rt .= sprintf(' %u', $this->_clampLimitValue($limit));
-			if ((is_int($offset) || ctype_digit($offset)) && $offset > 0) {
-				$rt = sprintf(' OFFSET %u ROWS FETCH FIRST %u ROWS ONLY', $this->_clampLimitValue($offset), $this->_clampLimitValue($limit));
+			// Clamp before the type check, so an overflowed float offset is not dropped.
+			$offset = $this->_clampLimitValue($offset);
+			if ((is_int($offset) || (is_string($offset) && ctype_digit($offset))) && $offset > 0) {
+				$rt = sprintf(' OFFSET %u ROWS FETCH FIRST %u ROWS ONLY', $offset, $this->_clampLimitValue($limit));
 			}
 			return $rt;
 		}

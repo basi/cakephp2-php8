@@ -266,6 +266,12 @@ class SqlserverTest extends CakeTestCase {
  */
 	public function setUp() : void {
 		parent::setUp();
+		if ($this->getName(false) === 'testLimit') {
+			// limit() only builds SQL, so test it without a SQL Server connection (and the pdo_sqlsrv driver).
+			$reflection = new ReflectionClass('SqlserverTestDb');
+			$this->db = $reflection->newInstanceWithoutConstructor();
+			return;
+		}
 		$this->Dbo = ConnectionManager::getDataSource('test');
 		if (!($this->Dbo instanceof Sqlserver)) {
 			$this->markTestSkipped('Please configure the test datasource to use SQL Server.');
@@ -699,6 +705,32 @@ class SqlserverTest extends CakeTestCase {
 		$this->assertFalse(isset($results[0][0]));
 		$this->assertEquals('mariano', $results[0]['User']['user']);
 		$this->assertEquals('nate', $results[1]['User']['user']);
+	}
+
+/**
+ * testLimit method
+ *
+ * @return void
+ */
+	public function testLimit() {
+		$this->assertNull($this->db->limit(0));
+		$this->assertSame(' TOP 10', $this->db->limit(10));
+		$this->assertSame(' TOP 10', $this->db->limit(10, null));
+		$this->assertSame(' TOP 10', $this->db->limit(10, 0));
+		$this->assertSame(' TOP 10', $this->db->limit(10, '0'));
+		$this->assertSame(' TOP 10', $this->db->limit(10, '1 OR 1=1'));
+
+		$this->assertSame(' OFFSET 20 ROWS FETCH FIRST 10 ROWS ONLY', $this->db->limit(10, 20));
+		$this->assertSame(' OFFSET 20 ROWS FETCH FIRST 10 ROWS ONLY', $this->db->limit('10', '20'));
+
+		$result = $this->db->limit(10, 300000000000000000000000000000);
+		$this->assertSame(' OFFSET ' . PHP_INT_MAX . ' ROWS FETCH FIRST 10 ROWS ONLY', $result);
+
+		// Offset of a page clamped to PHP_INT_MAX by PaginatorComponent. It must not fall back to the first rows.
+		$result = $this->db->limit(20, (PHP_INT_MAX - 1) * 20);
+		$this->assertSame(' OFFSET ' . PHP_INT_MAX . ' ROWS FETCH FIRST 20 ROWS ONLY', $result);
+
+		$this->assertSame(' TOP ' . PHP_INT_MAX, $this->db->limit(18446744073709551615));
 	}
 
 /**
