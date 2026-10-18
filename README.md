@@ -59,6 +59,11 @@ It means that composer will look at `master` branch of repository configured und
 
 ## Changelog
 
+### 2026-10-18
+
+- `Sqlserver::limit()`: an offset given as a float that does not fit in an int is now clamped to `PHP_INT_MAX` like in the other datasources. It used to be dropped silently, so the query fetched the first rows (`TOP`). BC note: the generated SQL changes to `OFFSET … ROWS FETCH FIRST … ROWS ONLY` for such offsets.
+- `Sqlserver::limit()` no longer passes `null` / floats to `ctype_digit()`, which is deprecated since PHP 8.1.
+
 ### 2026-10-03
 
 - Fixes for PHP 8.5: avoided out-of-range float to int casts, which warn on PHP 8.5.
