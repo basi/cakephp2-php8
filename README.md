@@ -64,6 +64,11 @@ It means that composer will look at `master` branch of repository configured und
 - `Sqlserver::limit()`: an offset given as a float that does not fit in an int is now clamped to `PHP_INT_MAX` like in the other datasources. It used to be dropped silently, so the query fetched the first rows (`TOP`). BC note: the generated SQL changes to `OFFSET … ROWS FETCH FIRST … ROWS ONLY` for such offsets.
 - `Sqlserver::limit()` no longer passes `null` / floats to `ctype_digit()`, which is deprecated since PHP 8.1.
 
+### 2026-10-17
+
+- Fixed PHP 8.1+ deprecations in `Sqlite::describe()` and `Postgres::describe()` when a column has no default value (`null` was passed to `trim()` / `strtoupper()` / `preg_replace()`). The described schema is unchanged.
+- Added PostgreSQL and SQLite on PHP 8.5 to CI.
+
 ### 2026-10-03
 
 - Fixes for PHP 8.5: avoided out-of-range float to int casts, which warn on PHP 8.5.
