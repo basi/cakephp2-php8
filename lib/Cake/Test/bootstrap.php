@@ -43,7 +43,10 @@ set_error_handler(function ($errorNumber, $errorString, $errorFile, $errorLine) 
 	if ($errorNumber !== E_DEPRECATED) {
 		return $phpunitErrorHandler($errorNumber, $errorString, $errorFile, $errorLine);
 	}
-	if (!(error_reporting() & $errorNumber)) {
+	// error_reporting() alone can't be trusted here: code under test may lower it
+	// (Configure::bootstrap() applies Error.level). Skip only silenced deprecations:
+	// on PHP 8, @ leaves only the fatal error bits in error_reporting().
+	if (!(error_reporting() & ~(E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR))) {
 		return false;
 	}
 	$key = $errorString . ' in ' . $errorFile . ':' . $errorLine;
