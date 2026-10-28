@@ -567,8 +567,9 @@ class Sqlserver extends DboSource {
 					preg_match('/OFFSET\s*(\d+)\s*.*?(\d+)\s*ROWS/', $limit, $limitOffset);
 
 					$limit = 'TOP ' . (int)$limitOffset[2];
-					$page = (int)($limitOffset[1] / $limitOffset[2]);
-					$offset = (int)($limitOffset[2] * $page);
+					// Use integer division, so an offset clamped to PHP_INT_MAX does not overflow to a negative value.
+					$page = intdiv((int)$limitOffset[1], (int)$limitOffset[2]);
+					$offset = (int)$limitOffset[2] * $page;
 
 					$rowCounter = static::ROW_COUNTER;
 					$sql = "SELECT {$limit} * FROM (
