@@ -37,8 +37,32 @@ error_reporting(E_ALL);
  * instead of failing the test, until the existing ones are fixed.
  * Everything else, including E_USER_DEPRECATED, is converted to exceptions by PHPUnit.
  */
-App::uses('CakeTestErrorHandler', 'TestSuite');
-$errorHandler = new CakeTestErrorHandler(new \PHPUnit\Util\ErrorHandler(true, true, true, true));
-set_error_handler($errorHandler);
-register_shutdown_function(array($errorHandler, 'printSummary'));
-unset($errorHandler);
+$phpunitErrorHandler = new \PHPUnit\Util\ErrorHandler(true, true, true, true);
+$deprecations = new ArrayObject();
+set_error_handler(function ($errorNumber, $errorString, $errorFile, $errorLine) use ($phpunitErrorHandler, $deprecations) {
+	if ($errorNumber !== E_DEPRECATED) {
+		return $phpunitErrorHandler($errorNumber, $errorString, $errorFile, $errorLine);
+	}
+	// error_reporting() alone can't be trusted here: code under test may lower it
+	// (Configure::bootstrap() applies Error.level). Skip only silenced deprecations:
+	// on PHP 8, @ leaves only the fatal error bits in error_reporting().
+	if (!(error_reporting() & ~(E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR))) {
+		return false;
+	}
+	$key = $errorString . ' in ' . $errorFile . ':' . $errorLine;
+	$deprecations[$key] = isset($deprecations[$key]) ? $deprecations[$key] + 1 : 1;
+	return true;
+});
+register_shutdown_function(function () use ($deprecations) {
+	if (!count($deprecations)) {
+		return;
+	}
+	$list = $deprecations->getArrayCopy();
+	ksort($list);
+	$output = sprintf("\n%d PHP deprecations (%d unique):\n", array_sum($list), count($list));
+	foreach ($list as $key => $count) {
+		$output .= sprintf("%6d x %s\n", $count, $key);
+	}
+	fwrite(STDERR, $output);
+});
+unset($phpunitErrorHandler, $deprecations);
