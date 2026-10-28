@@ -266,8 +266,8 @@ class SqlserverTest extends CakeTestCase {
  */
 	public function setUp() : void {
 		parent::setUp();
-		if ($this->getName(false) === 'testLimit') {
-			// limit() only builds SQL, so test it without a SQL Server connection (and the pdo_sqlsrv driver).
+		if (in_array($this->getName(false), array('testLimit', 'testLimitOverflowForLegacyVersion'), true)) {
+			// These tests only build SQL, so run them without a SQL Server connection (and the pdo_sqlsrv driver).
 			$reflection = new ReflectionClass('SqlserverTestDb');
 			$this->db = $reflection->newInstanceWithoutConstructor();
 			return;
@@ -731,6 +731,40 @@ class SqlserverTest extends CakeTestCase {
 		$this->assertSame(' OFFSET ' . PHP_INT_MAX . ' ROWS FETCH FIRST 20 ROWS ONLY', $result);
 
 		$this->assertSame(' TOP ' . PHP_INT_MAX, $this->db->limit(18446744073709551615));
+	}
+
+/**
+ * Test that an overflowed offset stays positive in the subquery pagination for legacy versions
+ *
+ * @return void
+ */
+	public function testLimitOverflowForLegacyVersion() {
+		$db = $this->createPartialMock('SqlserverTestDb', array('getVersion'));
+		$db->method('getVersion')->willReturn('10.00.0000');
+
+		// Offset of a page clamped to PHP_INT_MAX by PaginatorComponent.
+		$sql = $db->renderStatement('select', array(
+			'fields' => 'id',
+			'table' => 'users',
+			'alias' => 'AS [User]',
+			'lock' => '',
+			'joins' => '',
+			'conditions' => 'WHERE 1 = 1',
+			'group' => '',
+			'having' => '',
+			'order' => 'ORDER BY [id] ASC',
+			'limit' => $db->limit(20, (PHP_INT_MAX - 1) * 20),
+		));
+		$offset = intdiv(PHP_INT_MAX, 20) * 20;
+		$expected = <<<SQL
+SELECT TOP 20 * FROM (
+SELECT id, ROW_NUMBER() OVER (ORDER BY [id] ASC) AS _cake_page_rownum_
+FROM users AS [User]  WHERE 1 = 1
+) AS _cake_paging_
+WHERE _cake_paging_._cake_page_rownum_ > {$offset}
+ORDER BY _cake_paging_._cake_page_rownum_
+SQL;
+		$this->assertEquals($expected, preg_replace('/^\s+|\s+$/m', '', $sql));
 	}
 
 /**
