@@ -59,6 +59,11 @@ It means that composer will look at `master` branch of repository configured und
 
 ## Changelog
 
+### 2026-10-28
+
+- `CakeTestCase` and `CakeTestFixture` allow dynamic properties (`#[\AllowDynamicProperties]`, as `CakeObject` does), so app tests and fixtures that set undeclared properties no longer raise deprecations on PHP 8.2+.
+- The core test suite reports PHP deprecations (`E_DEPRECATED`) as a summary on STDERR at the end of the run, without failing tests.
+
 ### 2026-10-18
 
 - `Sqlserver::limit()`: an offset given as a float that does not fit in an int is now clamped to `PHP_INT_MAX` like in the other datasources. It used to be dropped silently, so the query fetched the first rows (`TOP`). BC note: the generated SQL changes to `OFFSET … ROWS FETCH FIRST … ROWS ONLY` for such offsets.
