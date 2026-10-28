@@ -59,6 +59,11 @@ It means that composer will look at `master` branch of repository configured und
 
 ## Changelog
 
+### 2026-10-28
+
+- `CakeTestCase` and `CakeTestFixture` allow dynamic properties (`#[\AllowDynamicProperties]`, as `CakeObject` does), so app tests and fixtures that set undeclared properties no longer raise deprecations on PHP 8.2+.
+- The core test suite reports PHP deprecations (`E_DEPRECATED`) as a summary on STDERR at the end of the run, without failing tests.
+
 ### 2026-10-03
 
 - Fixes for PHP 8.5: avoided out-of-range float to int casts, which warn on PHP 8.5.
